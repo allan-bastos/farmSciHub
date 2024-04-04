@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+{% block body %}
+    <div class="home-container">
+        <h1>Inserir Experimento</h1>
+        <form action="/detalhes-experimento/{{ experimento[0] }}/editar" method="post">
+            <div class="form-group">
+                <label for="nome">Título:</label>
+                <input type="text" class="form-control" id="titulo" name="titulo" required maxlength="120" value="{{ experimento[1] }}">
+            </div>
+            <div class="form-group">
+                <label for="descricao">Descrição:</label>
+                <textarea class="form-control" id="descricao" name="descricao" rows="3" required maxlength="800">{{ experimento[4]  }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="categoria">Categoria</label>
+                <select id="categoria" name="categoria" class="form-control"
+                    onchange="habilitarOutro('categoria', 'outra_categoria')" required>
+                    <option value="Avicultura">Avicultura</option>
+                    <option value="Suinocultura">Suinocultura</option>
+                    <option value="Bovinocultura">Bovinocultura</option>
+                    <option value="outro" selected>Outro</option>
+                </select>
+                <input type="text" id="outra_categoria" name="outra_categoria" class="form-control"  value="{{ experimento[2] }}"
+                    style="display: none;">
+            </div>
+            <div class="form-group">
+                <label for="localizacao">Localização:</label>
+                <input type="text" class="form-control" id="localizacao" name="localizacao" required maxlength="120" value="{{ experimento[5] }}">
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+        </form>
+    </div>
+
+    <script>
+        // Verificar se "Outro" é selecionado ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            habilitarOutro('categoria', 'outra_categoria');
+        });
+    
+        // Função para mostrar ou ocultar o campo de entrada conforme necessário
+        function habilitarOutro(selectId, inputId) {
+            var select = document.getElementById(selectId);
+            var input = document.getElementById(inputId);
+    
+            if (select.value === 'outro') {
+                input.style.display = 'block';
+            } else {
+                input.style.display = 'none';
+            }
+        }
+    </script>
+    
+{% endblock %}

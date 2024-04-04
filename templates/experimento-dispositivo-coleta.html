@@ -1,0 +1,96 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="home-container coleta-container">
+  <div id="colunas">
+    <div class="d-flex justify-content-between align-items-center">
+      <h2 class="mb-3 ml-5">Colunas do dispositivo: {{dispositivo.nome}}</h2>
+      <div class="d-flex justify-content-between align-items-right">
+        <a href="{{ url_for('experimento_dispositivo_coleta_deletar', experimento_id=experimento_id, dispositivo_id=dispositivo_id) }}"
+          class="btn btn-danger mr-5 mb-3">Excluir coletas <i class="fa fa-fw fa-trash"></i></a>
+      </div>
+    </div>
+    <div class="col-md-12">
+      <table id="example" class="table table-striped table-bordered" style="width:100%">
+        <thead>
+          <tr>
+            {% for coluna in dispositivo.colunas %}
+            <th>{{ loop.index }}. {{ coluna.nome }}</th>
+            {% endfor %}
+          </tr>
+          <tr>
+            {% for coluna in dispositivo.colunas %}
+            {% if coluna.tipo == 'caractere' %}
+            <th>
+              <button class="btn btn-secondary grafico-dispositivo" data-toggle="modal" data-target="#myModal"><i class="fa fa-fw fa-wave-square"></i> Gráfico</button>
+            </th>
+            {% else %}
+            <th>
+              <button class="btn btn-primary grafico-dispositivo" data-toggle="modal" data-target="#myModal{{loop.index}}"><i class="fa fa-fw fa-wave-square"></i> Gráfico</button>
+              <input type="hidden" id="myValue{{loop.index}}" value="/static/graficos/grafico-{{dispositivo_id}}-{{coluna.nome}}.png">
+            </th>
+            {% endif %}
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for coleta in coletas %}
+          <tr>
+            {% for i in range(dispositivo.colunas|length) %}
+            <td>{{ coleta[i+2] }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- The Modal -->
+{% for coluna in dispositivo.colunas %}
+<div id="myModal{{loop.index}}" class="modal">
+  <span class="close">&times;</span>
+  <img class="modal-content" id="img01{{loop.index}}">
+  <div id="caption{{loop.index}}"></div>
+</div>
+{% endfor %}
+
+<script>
+  // Get all modal elements
+  var modals = document.querySelectorAll(".modal");
+  
+  // Get all buttons that open modal
+  var buttons = document.querySelectorAll(".grafico-dispositivo");
+  
+  // Get all images and captions
+  var modalImgs = document.querySelectorAll(".modal-content");
+  var captions = document.querySelectorAll("#caption");
+  
+  // Loop through each button and add click event
+  buttons.forEach(function(button, index) {
+    button.onclick = function() {
+      modals[index].style.display = "block";
+      modalImgs[index].src = document.getElementById("myValue" + (index + 1)).value;
+    }
+  });
+  
+  // Get all close spans
+  var spans = document.querySelectorAll(".close");
+  
+  // Loop through each close span and add click event
+  spans.forEach(function(span, index) {
+    span.onclick = function() {
+      modals[index].style.display = "none";
+    }
+  });
+
+  // When the user clicks anywhere outside of the modal, close it
+  window.onclick = function(event) {
+    modals.forEach(function(modal) {
+      if (event.target == modal) {
+        modal.style.display = "none";
+      }
+    });
+  }
+</script>
+{% endblock %}

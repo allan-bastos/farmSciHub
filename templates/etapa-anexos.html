@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% block body %}
+    <div class="home-container">
+        <h1>Anexos da Etapa: {{etapa[1]}}</h1>
+
+        <div class="card mb-3 novo-anexo">
+            <div class="card-body">
+                <h2 class="card-title">Enviar Novo Anexo:</h2>
+                <form method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="file">Escolher Arquivo</label>
+                        <input type="file" class="form-control-file" id="file" name="file">
+                    </div>
+                    <div class="form-group">
+                        <label for="descricao">Descrição:</label>
+                        <input type="text" class="form-control" id="descricao" name="descricao" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Enviar</button>
+                </form>
+            </div>
+        </div>
+
+        {% if anexos %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Anexos</h5>
+                <ul class="list-group">
+                    {% for anexo in anexos %}
+                    <li class="list-group-item">
+                        <b>Nome do arquivo:</b>  {{ anexo[2] }} <br>  <b>Descrição:</b> {{ anexo[5] }} <br>
+                        <a href="{{ url_for('download_anexo', etapa_id=etapa_id, anexo_id=anexo[0]) }}" class="btn btn-info ml-2 mt-2">Visualizar</a>
+                        <a href="{{ url_for('deletar_anexos_etapa', etapa_id=etapa_id, anexo_id=anexo[0], experimento_id=experimento_id) }}" class="btn btn-danger ml-2 mt-2">Deletar</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% else %}
+        <div class="card mb-3 text-center">
+            <h5 class="card-title">Anexos</h5>
+            <div class="card-body">
+                <p class="card-text">Nenhum anexo inserido ainda.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        
+    </div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+{% block head %}
+<link rel="stylesheet" href="/static/styles.css">
+{% endblock %}
+
+{% block body %}
+    <div class="home-container">
+        <h1>Solicitações de Compartilhamento</h1>
+        <h3>Experimento: {{experimento[1]}}</h3>
+        
+        {% if solicitacoes %}
+        {% for solicitacao in solicitacoes %}
+        <div class="experiment-card">
+            <h3><b>{{ solicitacao.nome_completo }}</b></h3>
+            <h6><b>Vínculo:</b> {{ solicitacao.vinculo }}</h6>
+            <p><b>Projeto:</b> {{ solicitacao.projeto }}</p>
+            <p><b>Orientador:</b> {{ solicitacao.orientador }}</p>
+            <p><b>Tipo de Dados:</b> {{ solicitacao.tipos_dados }}</p>
+            <p><b>Informações Adicionais:</b> {{ solicitacao.info_adicionais }}</p>
+            <ul>
+                <li><b>Compromisso 1:</b> {% if solicitacao.compromisso1 %}Aceito{% else %}Pendente{% endif %}</li>
+                <li><b>Compromisso 2:</b> {% if solicitacao.compromisso2 %}Aceito{% else %}Pendente{% endif %}</li>
+                <li><b>Compromisso 3:</b> {% if solicitacao.compromisso3 %}Aceito{% else %}Pendente{% endif %}</li>
+                <li><b>Compromisso 4:</b> {% if solicitacao.compromisso4 %}Aceito{% else %}Pendente{% endif %}</li>
+                <li><b>Compromisso 5:</b> {% if solicitacao.compromisso5 %}Aceito{% else %}Pendente{% endif %}</li>
+            </ul>
+            <div class="experiment-buttons">
+                <a href="/aceitar-solicitacao/{{ solicitacao.id }}" class="btn btn-success">Aceitar</a>
+                <a href="/recusar-solicitacao/{{ solicitacao.id }}" class="btn btn-danger">Recusar</a>
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <br><br>
+        <p class="text-center" >Ainda não há solicitações de compartilhamento para o experimento <b>{{experimento[1]}}</b>.</p>
+        {% endif %}
+    </div>
+{% endblock %}

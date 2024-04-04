@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% block head %}
+<link rel="stylesheet" href="/static/styles.css">
+{% endblock %}
+
+{% block body %}
+    <div class="home-container">
+        <h1>Perfil do Usuário</h1>
+
+        <div class="perfil-card">
+            <p><strong>ID:</strong> {{user_id}}</p>
+            <p><strong>Usuário:</strong> {{nome}}</p>
+            <p><strong>Senha:</strong> {{senha}}</p>
+            <p><strong>Nome completo:</strong> {{nome_completo}}</p>
+            <p><strong>Vínculo Institucional:</strong> {{vinculo}}</p>
+        </div>
+
+        <div class="perfil-buttons">
+            <a href="/editar-perfil" class="btn btn-success">Editar Perfil</a>
+            <a href="/deletar-perfil" class="btn btn-danger">Excluir Perfil</a>
+        </div>
+    </div>
+{% endblock %}

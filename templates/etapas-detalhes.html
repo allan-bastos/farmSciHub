@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+{% block head %}
+<link rel="stylesheet" href="/static/styles.css">
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+{% endblock %}
+
+{% block body %}
+    <div class="home-container">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">Etapas do Experimento: {{experimento[1]}}</h2>
+            <div class="d-flex justify-content-between align-items-right">
+                <a href="/detalhes-experimento/{{ experimento_id }}/etapas/ordem" class="btn btn-info"
+                    style="margin-right: 10px;">Ordenar <i class="fa fa-fw fa-sort"></i></a>
+                <a href="/detalhes-experimento/{{ experimento_id }}/etapas/inserir" class="btn btn-success">Inserir <i class="fa fa-fw fa-plus"></i></a>
+            </div>
+        </div>
+
+        {% if etapas %}
+
+        <div id="carouselExampleControls" class="carousel slide" data-ride="carousel">
+            <div class="carousel-inner">
+                {% for etapa in etapas %}
+                <div class="carousel-item {% if loop.first %}active{% endif %}">
+                    <div class="d-flex flex-column justify-content-center align-items-center experiment-details"><!-- Utilize flexbox para centralizar verticalmente -->
+                        <p><b>Nome:</b> {{ etapa[1] }} &emsp; &emsp; <b>N&#176;</b> {{ loop.index }}</p>
+                        <p><b>Descrição:</b> {{ etapa[2] }}</p>
+                        <p><b>Status:</b> {{ etapa[5] }}</p>
+                        <p><b>Cadastrado em:</b> {{ etapa[3].strftime("%d/%m/%Y") }}</p>
+                    </div>
+                    <!-- Adicione um espaço abaixo do texto da etapa para evitar sobreposição -->
+                    <div class="space-below"></div>
+                    <div class="row justify-content-center align-items-center"><!-- Utilize flexbox para centralizar verticalmente -->
+                        <div class="col-8">
+                            <div class="d-flex justify-content-center"><!-- Utilize a classe justify-content-center para centralizar -->
+                                <a href="{{ url_for('editar_etapa', experimento_id=experimento_id ,etapa_id=etapa[0]) }}" class="btn btn-primary mx-2">Editar <i class="fa fa-fw fa-edit"></i></a>
+                                <a href="{{ url_for('deletar_etapa', experimento_id=experimento_id ,etapa_id=etapa[0]) }}" class="btn btn-danger mx-2">Excluir <i class="fa fa-fw fa-trash"></i></a>
+                                <a href="{{ url_for('etapa_anexos', experimento_id=experimento_id ,etapa_id=etapa[0]) }}" class="btn btn-warning mx-2">Anexos <i class="fa fa-fw fa-folder"></i></a>
+                                <a href="{{ url_for('etapa_url', experimento_id=experimento_id ,etapa_id=etapa[0]) }}" class="btn btn-secondary mx-2">URLs <i class="fa fa-fw fa-link"></i></a>
+                                <a href="/detalhes-experimento/{{experimento[0]}}/dispositivo" class="btn btn-info">Dispositivos <i class="fa fa-fw fa-microchip"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <br><br><br><br>
+            <a class="carousel-control-prev custom-prev " href="#carouselExampleControls" role="button" data-slide="prev">
+                <span class="carousel-control-prev-icon ml-0" aria-hidden="true"></span>
+                <span class="sr-only">Anterior</span>
+            </a>
+            <a class="carousel-control-next custom-next " href="#carouselExampleControls" role="button" data-slide="next">
+                <span class="carousel-control-next-icon mr-0" aria-hidden="true"></span>
+                <span class="sr-only">Próximo</span>
+            </a>
+        </div>
+
+        {% else %}
+        <div class="text-center">
+            <br>
+            <p>Nenhuma etapa cadastrada ainda.</p>
+        </div>
+        {% endif %}
+    </div>
+{% endblock %}

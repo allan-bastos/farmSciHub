@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Plataforma</title>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet"
+    id="bootstrap-css">
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
+  <script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.10.16/js/dataTables.bootstrap4.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    integrity="..." crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/static/styles.css">
+
+  <div class="container">
+    {% block head %}
+    {% endblock %}
+  </div>
+
+</head>
+
+
+<body>
+  <div class="navbar">
+    <!-- -->
+    <img class="logo" src="/static/images/logo1.png" alt="Logo" style="max-height: 90px; margin: 0; padding: 0; position: absolute;">
+    <a class="nav-item menu-button" href="#"><i class="fas fa-bars"></i></a>
+    <a class="nav-item" href="/"><i class="fa fa-fw fa-home"></i>&nbsp;Início</a>
+    {% if user.is_authenticated %}
+    <a class="nav-item" href="/perfil"><i class="fa fa-fw fa-user"></i>&nbsp;Perfil</a>
+    <a class="nav-item" href="/meus-experimentos"><i class="fa fa-fw fa-flask"></i>&nbsp;Experimentos</a>
+    <a class="nav-item" href="/sobre"><i class="fa fa-fw fa-info"></i>&nbsp;Sobre</a>
+    <a class="nav-item" href="/logout"><i class="fas fa-fw fa-sign-out-alt"></i>&nbsp;Sair</a>
+    {% else %}
+    <a class="nav-item" href="/perfil"><i class="fas fa-fw fa-sign-in-alt"></i>&nbsp;Entrar</a>
+    {% endif %}
+  </div>
+  <div class="menu-dropdown">
+    <a href="/"><i class="fa fa-fw fa-home"></i>&nbsp;Início</a>
+    {% if user.is_authenticated %}
+    <a href="/perfil"><i class="fa fa-fw fa-user"></i>&nbsp;Perfil</a>
+    <a href="/meus-experimentos"><i class="fa fa-fw fa-flask"></i>&nbsp;Experimentos</a>
+    <a href="/sobre"><i class="fa fa-fw fa-info"></i>&nbsp;Sobre</a>
+    <a href="/logout"><i class="fas fa-fw fa-sign-out-alt"></i>&nbsp;Sair</a>
+    {% else %}
+    <a href="/perfil"><i class="fas fa-fw fa-sign-in-alt"></i>&nbsp;Entrar</a>
+    {% endif %}
+    <a href="#" class="nav-button"><i class="fas fa-fw fa-caret-up"></i></a>
+  </div>
+
+
+  {% block body %}
+  {% endblock %}
+  <footer class="footer">
+    <p style="padding-top:1rem;">&copy; 2024 Instituto Federal - Campus Piracicaba.</p>
+  </footer>
+
+
+  <script>
+    const menuButton = document.querySelector('.menu-button');
+    const menuDropdown = document.querySelector('.menu-dropdown');
+    const navBar = document.querySelector('.navbar');
+    const navButton = document.querySelector('.nav-button');
+
+    menuButton.addEventListener('click', () => {
+      menuDropdown.classList.remove('inactive')
+      navBar.classList.remove('active')
+      menuDropdown.classList.toggle('active');
+      navBar.classList.toggle('inactive');
+    });
+
+    navButton.addEventListener('click', () => {
+      menuDropdown.classList.remove('active')
+      navBar.classList.remove('inactive')
+      menuDropdown.classList.toggle('inactive');
+      navBar.classList.toggle('active');
+    });
+
+    function habilitarOutro(selectId, inputId) {
+      var select = document.getElementById(selectId);
+      var input = document.getElementById(inputId);
+
+      if (select.value === 'outro') {
+        input.style.display = 'block';
+        input.setAttribute('required', 'required');
+      } else {
+        input.style.display = 'none';
+        input.value = '';
+        input.removeAttribute('required');
+      }
+    }
+
+  </script>
+</body>
+
+</html>

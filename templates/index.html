@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block head %}
+<link rel="stylesheet" href="/static/styles.css">
+{% endblock %}
+
+{% block body %}
+    <div class="home-container">
+        <h1>Experimentos na Plataforma</h1>
+
+        {% if experimentos %}
+        {% for experimento in experimentos %}
+        <div class="experiment-card" onclick="window.location.href='{{ url_for('experimento', experimento_id=experimento.id) }}';">
+            <h3><b>{{ experimento[1] }}</b></h3>
+            <h6><b>Categoria:</b> {{ experimento[2] }}</h6>
+            <p><b>Descrição:</b> {{ experimento[4] }}</p>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center">
+            <br>
+            <p>Nenhum experimento cadastrado ainda.</p>
+        </div>
+        {% endif %}
+    </div>
+{% endblock %}

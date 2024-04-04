@@ -1,0 +1,345 @@
+body {
+    padding: 0;
+    margin: 0;
+    font-family: 'Roboto', Arial, sans-serif;
+}
+
+.pt-4 {
+    margin-top: 0;
+    padding-top: 0rem !important;
+}
+
+.menu-dropdown {
+    position:relative;
+    top: 100%;
+    left: 0;
+    background-color: #1bad2f;
+    width: 100%;
+    display: none;
+}
+
+.menu-dropdown a {
+    padding: 1rem;
+    color: white;
+    text-decoration: none;
+    display: flex;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.menu-dropdown a:hover {
+    background-color: #118f22;
+}
+
+.menu-dropdown.active {
+    display: block;
+}
+
+.menu-dropdown.inactive {
+    display: none;
+}
+
+.navbar.inactive {
+    display: none;
+}
+
+.navbar.active {
+    display: flex;
+}
+
+.navbar {
+    background-color: #1bad2f;
+    padding-top: 1rem;
+    overflow: auto;
+    justify-content: center;
+    height: 10vh;
+}
+
+.navbar a {
+    float: left;
+    padding: 0rem;
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+    padding: 0.5rem 3rem 0.5rem 3rem;
+}
+
+.navbar a:hover {
+    background-color: #118f22;
+}
+
+.nav-item {
+    background-color:transparent;
+    margin-top: -0.5rem;
+    width: 15vw;
+    display: flex;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.menu-button {
+    display: none;
+}
+
+.logo{
+    left: 3.5rem; 
+}
+
+@media screen and (max-width: 1081px) {
+    .navbar a:not(.menu-button) {
+        display: none;
+    }
+    .menu-button {
+        display:flex;
+        margin-top: 0px;
+    }
+    .navbar {
+        padding: 0;
+    }
+    .home-container{
+        height: 90vh;
+    }
+    .logo{
+        left: 1.5rem; 
+    }
+}
+@media screen and (min-width: 1081px) {
+    .menu-dropdown {
+        display: none;
+    }
+}
+
+.label-bold {
+    font-weight: bold;
+    font-size: 20px;
+    color: #1b1c1b;
+}
+
+
+.home-container {
+    background-color: #f2f2f2; 
+    margin-top: 0;
+    padding: 20px; 
+    height: 85%;
+    padding-bottom: 1rem;
+    min-height: 85vh;
+    width: 70%; /* Set a default width for larger screens */
+    margin: 0 auto; /* Center the container on larger screens */
+}
+
+.coleta-container {
+    width: 100% !important;
+}
+
+
+@media screen and (max-width: 1081px) {
+
+    .home-container {
+
+        width: 100%; /* Make the container take up the full width on smaller screens */
+
+        padding:  1rem 2rem 0rem 2rem; /* Adjust padding for smaller screens */
+        height: 90vh;
+    }
+
+}
+
+h1 {
+    margin: 0 auto; 
+    width: fit-content; 
+    text-align: center; 
+    margin-bottom: 2rem;
+}
+
+body {
+    background-color: #cbf3d0; 
+    margin: 0;
+    padding: 0; 
+}
+.valores-container {
+    margin-left: 0;
+}
+
+
+.login-container {
+    background-color: #f2f2f2; 
+    margin-top: 0;
+    padding: 20px; 
+    height: 85%;
+    padding-bottom: 1rem;
+    min-height: 85vh;
+}
+
+.footer {
+    background-color: #1bad2f;
+    color: #f2f2f2;
+    text-align: center;
+    padding: 1rem;
+    position:static;
+    bottom: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 5vh;
+}
+
+.experiment-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around; 
+}
+
+.experiment-card {
+    background-color: #ebeaea;
+    padding: 20px;
+    margin: 10px;
+    border-radius: 5px;
+    min-width: 98%;
+    width:fit-content; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+}
+
+.experiment-card h3 {
+    margin-bottom: 10px;
+}
+
+.experiment-card:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); 
+}
+
+.experiment-buttons {
+    margin-top: 35px;
+}
+
+.experiment-button {
+    margin-right: 10px;
+}
+
+.experiment-details {
+    margin-top: 35px;
+}
+
+.perfil-card {
+    padding: 2rem;
+}
+
+.perfil-card {
+    border: 2px solid #ccc;
+    padding-left: 2rem;
+}
+
+.perfil-buttons {
+    margin-top: 1rem;
+    padding-left: 2rem;
+
+}
+
+.perfil-buttons button {
+    margin-right: 10px;
+}
+
+
+.arrow-navigation {
+    color: black;
+}
+.sortable-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.sortable-item {
+    background-color: #ebeaea;
+    margin: 5px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    cursor: grab;
+}
+
+.sortable-item:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); 
+}
+
+/* Alterando a cor do ícone padrão */
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+    background-color: #a7a4a4; /* Altere para a cor desejada */
+}
+
+/* Alterando a cor do texto 'Anterior' e 'Próximo' */
+.carousel-control-prev .sr-only,
+.carousel-control-next .sr-only {
+    color: #a7a4a4; /* Altere para a cor desejada */
+}
+
+
+/*##################################################################################################################################*/
+
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    padding-top: 100px; /* Location of the box */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgba(0,0,0,0.9); /* Black w/ opacity */
+  }
+  
+  /* Modal Content (image) */
+  .modal-content {
+    margin: auto;
+    display: block;
+    width: 100%;
+    max-width: 80vw;
+  }
+  
+  /* Caption of Modal Image */
+  #caption {
+    margin: auto;
+    display: block;
+    width: 80%;
+    max-width: 700px;
+    text-align: center;
+    color: #ccc;
+    padding: 10px 0;
+    height: 150px;
+  }
+  
+  /* Add Animation */
+  .modal-content, #caption {  
+    animation-name: zoom;
+    animation-duration: 0.6s;
+  }
+  
+  @keyframes zoom {
+    from {transform: scale(0)} 
+    to {transform: scale(1)}
+  }
+  
+  /* The Close Button */
+  .close {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    transition: 0.3s;
+  }
+  
+  .close:hover,
+  .close:focus {
+    color: #bbb;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  
+  /* 100% Image Width on Smaller Screens */
+  @media only screen and (max-width: 700px){
+    .modal-content {
+      width: 100%;
+    }
+  }

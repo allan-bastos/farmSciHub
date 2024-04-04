@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<div class="centralizar mx-auto">
+    <div class="d-flex justify-content-center align-items-center">
+        <h1>Valores</h1>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <table id="example" class="table table-striped table-bordered" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Umidade</th>
+                        <th>Temperatura</th>
+                        <th>Pressao Atmosférica</th>
+                        <th>Altitude</th>
+                        <th>Umidade Relativa</th>
+                        <th>Monóxido de Carbono</th>
+                        <th>Amonia</th>
+                        <th>PM10</th>
+                        <th>PM2.5</th>
+                        <th>AQI</th>
+                        <th>PM2.5_2</th>
+                        <th>Dióxido de Carbono</th>
+                        <th>Data</th>
+                        <th>Hora</th>
+                        <th>Editar</th>
+                        <th>Deletar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in list_values %}
+                    <tr>
+                        <td>{{ item['_id'] }}</td>
+                        <td>{{ item['nome'] }}</td>
+                        <td>{{ item['umidade'] }}</td>
+                        <td>{{ item['temperatura'] }}</td>
+                        <td>{{ item['pressaoAtm'] }}</td>
+                        <td>{{ item['altitude'] }}</td>
+                        <td>{{ item['umidadeRelativa'] }}</td>             
+                        <td>{{ item['monoxidoCarbono'] }}</td>
+                        <td>{{ item['amonia'] }}</td>
+                        <td>{{ item['PM10'] }}</td>
+                        <td>{{ item['PM25'] }}</td>
+                        <td>{{ item['AQI'] }}</td>
+                        <td>{{ item['PM25_2'] }}</td>
+                        <td>{{ item['dioxidoCarbono'] }}</td>
+                        <td>{{ item['data'] }}</td>
+                        <td>{{ item['hora'] }}</td>
+                        
+                        <!-- Adicione outros campos conforme sua coleção -->
+                        <td width="130">
+                            <a href="/editar_dispositivo/{{ item['_id'] }}" class="btn btn-secondary btn-sm">Editar</a>
+                        </td>
+                        <td width="130">
+                            <a href="/deletar_dispositivo/{{ item['_id'] }}"
+                                class="btn btn-danger btn-delete btn-sm">Deletar</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

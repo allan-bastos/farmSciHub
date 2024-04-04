@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+{% block body %}
+    <div class="home-container">
+        <h1> URLs do Experimento: {{experimento[1]}}</h1>
+
+        <div class="card mb-3 novo-anexo">
+            <div class="card-body">
+                <h2 class="card-title">Enviar Nova URL:</h2>
+                <form action="{{ url_for('experimento_url', experimento_id=experimento_id) }}" method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="descricao">URL:</label>
+                        <input type="text" class="form-control" id="url" name="url" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="descricao">Nome da URL:</label>
+                        <input type="text" class="form-control" id="nome" name="nome" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="descricao">Descrição da URL:</label>
+                        <input type="text" class="form-control" id="descricao_url" name="descricao_url" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Enviar</button>
+                </form>
+            </div>
+        </div>
+
+        {% if urls %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">URLs</h5>
+                <ul class="list-group">
+                    {% for url in urls %}
+                    <li class="list-group-item">
+                        <b>URL:</b><a href="{{ url[3] }}">  {{ url[2] }} </a> <br>
+                        <b>Descrição:</b> {{ url[5] }} <br>
+                        <a href="{{ url_for('deletar_url_experimento', url_id=url[0], experimento_id=experimento_id) }}" class="btn btn-danger ml-2 mt-2">Deletar</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% else %}
+        <div class="card mb-3 text-center">
+            <div class="card-body">
+                <h5 class="card-title">URLs</h5>
+                <p class="card-text">Nenhuma URL inserida ainda.</p>
+            </div>
+        </div>
+        {% endif %}
+        
+    </div>
+{% endblock %}

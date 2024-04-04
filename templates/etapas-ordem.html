@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block body %}
+    <div class="home-container">
+        <h1>Ordenar Etapas</h1>
+        <div id="etapas-lista" class="sortable-list">
+            {% for etapa in etapas %}
+                <div class="sortable-item" data-index="{{ loop.index0 }}" draggable="true">Nome: {{ etapa[1] }}  -- ID: {{ etapa[0] }}</div>
+            {% endfor %}
+        </div>
+        <br>
+        <button id="salvar-btn" class="btn btn-success">Salvar Ordem</button>
+        
+        <script src="{{ url_for('static', filename='script.js') }}"></script>      
+    </div>
+{% endblock %}
+
+
+

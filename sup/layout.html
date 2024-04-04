@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Formulário</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>  
+      
+    <script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.16/js/dataTables.bootstrap4.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="..." crossorigin="anonymous">
+
+    <div class="container">
+      {% block head %}
+      {% endblock %}
+    </div>
+
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+      <a class="navbar-brand mx-auto text-center" href="/">
+        <i class="fas fa-arrow-left"></i> Retornar
+      </a>
+      <a class="navbar-brand mx-auto text-center" href="/">Home</a>
+      <a class="navbar-brand mx-auto text-center" href="/login">Login</a>
+      <a class="navbar-brand mx-auto text-center" href="/formulario">Formulário</a>
+      <a class="navbar-brand mx-auto text-center" href="/">
+        Avançar <i class="fas fa-arrow-right"></i> 
+      </a>
+    </nav>  
+
+      {% block body %}
+      {% endblock %}
+
+<script>
+const btnDelete= document.querySelectorAll('.btn-delete');
+if(btnDelete) {
+  const btnArray = Array.from(btnDelete);
+  btnArray.forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      if(!confirm('Tem certeza que deseja deletar esse item?')){
+        e.preventDefault();
+      }
+    });
+  })
+}
+  
+$(document).ready(function() {
+    $('#example').DataTable({     
+      "aLengthMenu": [[3, 5, 10, 25, -1], [3, 5, 10, 25, "All"]],
+        "iDisplayLength": -1
+       } 
+    );
+} );
+
+function habilitarOutro(selectId, inputId) {
+  var select = document.getElementById(selectId);
+  var input = document.getElementById(inputId);
+  
+  if (select.value === 'outro') {
+      input.style.display = 'block';
+      input.setAttribute('required', 'required');
+  } else {
+      input.style.display = 'none';
+      input.removeAttribute('required');
+  }
+}
+  
+</script>
+  </body>
+</html>

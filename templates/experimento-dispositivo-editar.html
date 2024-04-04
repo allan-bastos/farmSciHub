@@ -1,0 +1,88 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="home-container">
+  <h1>Editar Dispositivo</h1>
+  <form id="form-dispositivo" method="post" enctype="multipart/form-data">
+    <div class="form-group">
+      <label for="nome">Nome:</label>
+      <input type="text" id="nome" name="nome" class="form-control" value="{{ dispositivo.nome }}" required>
+    </div>
+    <div class="form-group">
+      <label for="descricao">Descrição:</label>
+      <textarea id="descricao" name="descricao" class="form-control" rows="4" cols="50">{{ dispositivo.descricao }}</textarea>
+    </div>
+    <div class="form-group">
+      <label for="mac_address">MAC Address:</label>
+      <input type="text" id="mac_address" name="mac_address" class="form-control" value="{{ dispositivo.mac_address }}">
+    </div>
+    <div id="colunas">
+      <h4>Colunas:</h4>
+      {% for coluna in dispositivo.colunas %}
+      <div class="form-group coluna">
+        <div class="card mb-3">
+          <div class="card-body">
+            <label for="coluna_nome">Nome da Coluna:</label>
+            <input type="text" name="coluna[]" class="form-control coluna-nome" value="{{ coluna.nome }}" required>
+            <label for="coluna_descricao">Descrição Sucinta:</label>
+            <input type="text" name="coluna[]" class="form-control coluna-descricao" maxlength="70" value="{{ coluna.descricao }}" required>
+            <label for="coluna_tipo">Tipo de Dado:</label>
+            <select name="coluna[]" class="form-control coluna-tipo" required>
+              <option value="inteiro" {% if coluna.tipo == 'inteiro' %} selected {% endif %}>INTEIRO</option>
+              <option value="real" {% if coluna.tipo == 'real' %} selected {% endif %}>REAL</option>
+              <option value="caractere" {% if coluna.tipo == 'caractere' %} selected {% endif %}>CARACTERE</option>
+            </select>
+            <label for="coluna_unidade">Unidade:</label>
+            <input type="text" name="coluna[]" class="form-control coluna-unidade" value="{{ coluna.unidade }}">
+            <button type="button" class="btn btn-danger remove-coluna mt-2">Remover</button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="form-group">
+      <button type="button" id="add-coluna" class="btn btn-success">Adicionar Coluna</button>
+    </div>
+    <div class="form-group">
+      <button type="submit" class="btn btn-primary btn-block">Salvar Alterações</button>
+    </div>
+  </form>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('form-dispositivo');
+    const addColunaButton = document.getElementById('add-coluna');
+    const colunasContainer = document.getElementById('colunas');
+
+    addColunaButton.addEventListener('click', function() {
+      const colunaDiv = document.createElement('div');
+      colunaDiv.classList.add('form-group', 'coluna');
+      colunaDiv.innerHTML = `
+      <div class="card mb-3">
+        <div class="card-body">
+        <label for="coluna_nome">Nome da Coluna:</label>
+        <input type="text" name="coluna[]" class="form-control coluna-nome" placeholder="Nome da Coluna" required>
+        <label for="coluna_descricao">Descrição Sucinta:</label>
+        <input type="text" name="coluna[]" maxlength="70" class="form-control coluna-descricao" placeholder="Descrição Sucinta" required>
+        <label for="coluna_tipo">Tipo de Dado:</label>
+        <select name="coluna[]" class="form-control coluna-tipo" required>
+          <option value="inteiro">INTEIRO</option>
+          <option value="real">REAL</option>
+          <option value="caractere">CARACTERE</option>
+        </select>
+        <label for="coluna_unidade">Unidade:</label>
+        <input type="text" name="coluna[]" class="form-control coluna-unidade" placeholder="Unidade">
+        <button type="button" class="btn btn-danger remove-coluna mt-2">Remover</button>
+        </div>
+      </div>
+      `;
+      colunasContainer.appendChild(colunaDiv);
+    });
+
+    colunasContainer.addEventListener('click', function(event) {
+      if (event.target.classList.contains('remove-coluna')) {
+        event.target.parentElement.remove();
+      }
+    });
+  });
+</script>
+{% endblock %}

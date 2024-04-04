@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+{% block head %}
+<link rel="stylesheet" href="/static/styles.css">
+{% endblock %}
+
+{% block body %}
+    <div class="home-container">
+        <h1>Detalhes do Experimento</h1>
+
+        <div class="experiment-details">
+            <h3>{{ experimento[1] }}</h3>
+            <p><b>Categoria:</b> {{ experimento[2]  }}</p>
+            <p><b>Descrição:</b> {{ experimento[4]  }}</p>
+            <p><b>Localização:</b> {{ experimento[5]  }}</p>
+            <p><b>Cadastrado em:</b> {{ experimento[3].strftime("%d/%m/%Y") }}</p>
+
+        </div> 
+        <div class="experiment-buttons">
+            <a href="/detalhes-experimento/{{experimento[0]}}/editar" class="btn btn-primary">Editar <i class="fa fa-fw fa-edit"></i></a>
+            <a href="/detalhes-experimento/{{experimento[0]}}/deletar" class="btn btn-danger">Excluir <i class="fa fa-fw fa-trash"></i></a>
+            <a href="/detalhes-experimento/{{experimento[0]}}/anexos" class="btn btn-warning">Anexos <i class="fa fa-fw fa-folder"></i></a>
+            <a href="/detalhes-experimento/{{experimento[0]}}/url" class="btn btn-secondary">URLs <i class="fa fa-fw fa-link"></i></a>
+            <a href="/detalhes-experimento/{{experimento[0]}}/dispositivo" class="btn btn-info">Dispositivos <i class="fa fa-fw fa-microchip"></i></a>
+            <a href="/detalhes-experimento/{{experimento[0]}}/etapas" class="btn btn-success">Etapas <i class="fa fa-fw fa-list"></i></a>
+            <a href="/solicitacoes_experimento/{{experimento[0]}}" class="btn btn-dark">Compartilhar <i class="fa fa-fw fa-share"></i></a>
+        </div>
+    </div>
+{% endblock %}

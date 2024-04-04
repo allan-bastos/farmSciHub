@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+{% block head %}
+<link rel="stylesheet" href="/static/styles.css">
+{% endblock %}
+
+{% block body %}
+    <div class="home-container">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0 ml-0">Meus Experimentos</h2>
+            <div class="ml-auto">
+                <a class="btn btn-primary inserir-experimento" href="/inserir-experimento"><i class="fa fa-fw fa-plus"></i>Inserir</a>
+            </div>
+        </div>
+        
+        
+
+        {% if experimentos_criados %}
+        {% for experimento in experimentos_criados %}
+        <div class="experiment-card"
+            onclick="window.location.href='{{ url_for('detalhes_experimento', experimento_id=experimento[0]) }}';">
+            <h3><b>{{ experimento[1] }}</b></h3>
+            <h6><b>Categoria:</b> {{ experimento[2] }}</h6>
+            <p><b>Descrição:</b> {{ experimento[4] }}</p>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center">
+            <br>
+            <p>Nenhum experimento criado ainda.</p>
+        </div>
+        {% endif %}
+        <br>
+        <h2 class="ml-0">Experimentos Compartilhados Comigo</h2>
+        {% if experimentos_disponiveis %}
+        {% for experimento in experimentos_disponiveis %}
+        <div class="experiment-card"
+            onclick="window.location.href='{{ url_for('detalhes_experimento', experimento_id=experimento[0]) }}';">
+            <h3><b>{{ experimento[1] }}</b></h3>
+            <h6><b>Categoria:</b> {{ experimento[2] }}</h6>
+            <p><b>Descrição:</b> {{ experimento[4] }}</p>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center">
+            <br>
+            <p>Nenhum experimento compartilhado comigo ainda.</p>
+        </div>
+        {% endif %}
+    </div>
+{% endblock %}
