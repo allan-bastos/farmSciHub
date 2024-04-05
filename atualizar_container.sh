@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Nome da imagem
-IMAGE_NAME="crud_dispositivo"
+IMAGE_NAME="plataforma"
 
 # Nome do container
-CONTAINER_NAME="crud_dispositivo_pibiti"
+CONTAINER_NAME="plataforma"
 
 # Parando o serviço
-sudo systemctl stop crud_dispositivo.service
+#sudo systemctl stop crud_dispositivo.service
 
 # Parando e removendo o container existente
 docker stop $CONTAINER_NAME
@@ -20,7 +20,7 @@ docker rmi $IMAGE_NAME
 docker build -t $IMAGE_NAME .
 
 # Criando um novo container com a imagem atualizada
-docker run -d -p 5000:5000 --name $CONTAINER_NAME $IMAGE_NAME
+docker run -d -p 5002:5002 --name $CONTAINER_NAME $IMAGE_NAME
 
 # Iniciando o serviço
-sudo systemctl start crud_dispositivo.service
+#sudo systemctl start crud_dispositivo.service
