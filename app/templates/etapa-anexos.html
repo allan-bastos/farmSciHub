@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 {% block body %}
     <div class="home-container">
+        <a href="/detalhes-experimento/{{ experimento_id }}/etapas" class="btn-voltar"><i class="fa fa-fw fa-arrow-left"></i>Voltar</a> 
         <h1>Anexos da Etapa: {{etapa[1]}}</h1>
 
         <div class="card mb-3 novo-anexo">
@@ -29,7 +30,7 @@
                     <li class="list-group-item">
                         <b>Nome do arquivo:</b>  {{ anexo[2] }} <br>  <b>Descrição:</b> {{ anexo[5] }} <br>
                         <a href="{{ url_for('download_anexo', etapa_id=etapa_id, anexo_id=anexo[0]) }}" class="btn btn-info ml-2 mt-2">Visualizar</a>
-                        <a href="{{ url_for('deletar_anexos_etapa', etapa_id=etapa_id, anexo_id=anexo[0], experimento_id=experimento_id) }}" class="btn btn-danger ml-2 mt-2">Deletar</a>
+                        <a href="#" onclick="confirmarExclusao('{{ url_for('deletar_anexos_etapa', etapa_id=etapa_id, anexo_id=anexo[0], experimento_id=experimento_id) }}')" class="btn btn-danger ml-2 mt-2">Deletar</a>
                     </li>
                     {% endfor %}
                 </ul>

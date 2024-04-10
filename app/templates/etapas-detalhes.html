@@ -8,6 +8,7 @@
 
 {% block body %}
     <div class="home-container">
+        <a href="/detalhes-experimento/{{ experimento_id }}" class="btn-voltar"><i class="fa fa-fw fa-arrow-left"></i>Voltar</a> <br>
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="mb-0">Etapas do Experimento: {{experimento[1]}}</h2>
             <div class="d-flex justify-content-between align-items-right">
@@ -35,7 +36,7 @@
                         <div class="col-8">
                             <div class="d-flex justify-content-center"><!-- Utilize a classe justify-content-center para centralizar -->
                                 <a href="{{ url_for('editar_etapa', experimento_id=experimento_id ,etapa_id=etapa[0]) }}" class="btn btn-primary mx-2">Editar <i class="fa fa-fw fa-edit"></i></a>
-                                <a href="{{ url_for('deletar_etapa', experimento_id=experimento_id ,etapa_id=etapa[0]) }}" class="btn btn-danger mx-2">Excluir <i class="fa fa-fw fa-trash"></i></a>
+                                <a href="#" onclick="confirmarExclusao('{{ url_for('deletar_etapa', experimento_id=experimento_id ,etapa_id=etapa[0]) }}')" class="btn btn-danger mx-2">Excluir <i class="fa fa-fw fa-trash"></i></a>
                                 <a href="{{ url_for('etapa_anexos', experimento_id=experimento_id ,etapa_id=etapa[0]) }}" class="btn btn-warning mx-2">Anexos <i class="fa fa-fw fa-folder"></i></a>
                                 <a href="{{ url_for('etapa_url', experimento_id=experimento_id ,etapa_id=etapa[0]) }}" class="btn btn-secondary mx-2">URLs <i class="fa fa-fw fa-link"></i></a>
                                 <a href="/detalhes-experimento/{{experimento[0]}}/dispositivo" class="btn btn-info">Dispositivos <i class="fa fa-fw fa-microchip"></i></a>

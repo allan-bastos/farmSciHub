@@ -1,11 +1,12 @@
 {% extends "layout.html" %}
 {% block body %}
 <div class="home-container coleta-container">
+  <a href="/detalhes-experimento/{{ experimento_id }}/dispositivo" class="btn-voltar"><i class="fa fa-fw fa-arrow-left"></i>Voltar</a> <br>
   <div id="colunas">
     <div class="d-flex justify-content-between align-items-center">
       <h2 class="mb-3 ml-5">Colunas do dispositivo: {{dispositivo.nome}}</h2>
       <div class="d-flex justify-content-between align-items-right">
-        <a href="{{ url_for('experimento_dispositivo_coleta_deletar', experimento_id=experimento_id, dispositivo_id=dispositivo_id) }}"
+        <a href="#" onclick="confirmarExclusao('{{ url_for('experimento_dispositivo_coleta_deletar', experimento_id=experimento_id, dispositivo_id=dispositivo_id) }}')"
           class="btn btn-danger mr-5 mb-3">Excluir coletas <i class="fa fa-fw fa-trash"></i></a>
       </div>
     </div>

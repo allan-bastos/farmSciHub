@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 {% block body %}
     <div class="home-container">
+        <a href="/detalhes-experimento/{{ experimento_id }}" class="btn-voltar"><i class="fa fa-fw fa-arrow-left"></i>Voltar</a>
         <h1> URLs do Experimento: {{experimento[1]}}</h1>
 
         <div class="card mb-3 novo-anexo">

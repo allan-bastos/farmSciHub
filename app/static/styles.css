@@ -343,3 +343,10 @@ body {
       width: 100%;
     }
   }
+
+.btn-voltar {
+    align-self:baseline;
+    position: absolute;
+    margin-bottom: 0px;
+    margin-left: -10px; 
+}

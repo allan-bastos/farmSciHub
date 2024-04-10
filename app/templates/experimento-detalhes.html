@@ -5,6 +5,7 @@
 
 {% block body %}
     <div class="home-container">
+        <a href="/meus-experimentos" class="btn-voltar"><i class="fa fa-fw fa-arrow-left"></i>Voltar</a>
         <h1>Detalhes do Experimento</h1>
 
         <div class="experiment-details">
@@ -17,7 +18,7 @@
         </div> 
         <div class="experiment-buttons">
             <a href="/detalhes-experimento/{{experimento[0]}}/editar" class="btn btn-primary">Editar <i class="fa fa-fw fa-edit"></i></a>
-            <a href="/detalhes-experimento/{{experimento[0]}}/deletar" class="btn btn-danger">Excluir <i class="fa fa-fw fa-trash"></i></a>
+            <a href="#" onclick="confirmarExclusao('/detalhes-experimento/{{experimento[0]}}/deletar')" class="btn btn-danger">Excluir <i class="fa fa-fw fa-trash"></i></a>
             <a href="/detalhes-experimento/{{experimento[0]}}/anexos" class="btn btn-warning">Anexos <i class="fa fa-fw fa-folder"></i></a>
             <a href="/detalhes-experimento/{{experimento[0]}}/url" class="btn btn-secondary">URLs <i class="fa fa-fw fa-link"></i></a>
             <a href="/detalhes-experimento/{{experimento[0]}}/dispositivo" class="btn btn-info">Dispositivos <i class="fa fa-fw fa-microchip"></i></a>
@@ -25,4 +26,5 @@
             <a href="/solicitacoes_experimento/{{experimento[0]}}" class="btn btn-dark">Compartilhar <i class="fa fa-fw fa-share"></i></a>
         </div>
     </div>
+
 {% endblock %}

@@ -36,7 +36,7 @@ conn = psycopg2.connect(
 app = Flask(__name__)
 app.secret_key = 'chave_secreta'
 
-app.config['UPLOAD_FOLDER'] = '/home/allan/pibiti/font-test/static/uploads'
+app.config['UPLOAD_FOLDER'] = '/home/allan/pibiti/plataforma_gestao_agropecuaria/app/static/uploads'
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -181,14 +181,14 @@ def solicitacoes_experimento(id):
     solicitacoes = cur.fetchall()
     cur.execute("SELECT * FROM api.experimento WHERE id = %s", (id,))
     experimento = cur.fetchone()
-    return render_template('experimento-solicitacoes.html', solicitacoes=solicitacoes, experimento=experimento, user=current_user)
+    return render_template('experimento-solicitacoes.html', solicitacoes=solicitacoes, experimento_id = id, experimento=experimento, user=current_user)
 
 @app.route('/recusar-solicitacao/<int:id>')
 def recusar_solicitacao(id):
     cur = conn.cursor()
     cur.execute("DELETE FROM api.solicitacoes WHERE id = %s", (id,))
     conn.commit()
-    return redirect(url_for('meus_experimentos', user=current_user))
+    return redirect(url_for('meus_experimentos',  user=current_user))
 
 @app.route('/aceitar-solicitacao/<int:id>')
 def aceitar_solicitacao(id):
@@ -229,6 +229,7 @@ def formulario_requisicao(id):
         compromisso3 = 'compromisso3' in request.form
         compromisso4 = 'compromisso4' in request.form
         compromisso5 = 'compromisso5' in request.form
+        compromisso6 = 'compromisso6' in request.form
         
         solicitante_id = current_user.id
         experimento_id = id
@@ -237,15 +238,15 @@ def formulario_requisicao(id):
         cur = conn.cursor()
         cur.execute("""
             INSERT INTO api.solicitacoes 
-                (solicitante_id, experimento_id,nome_completo, vinculo, projeto, orientador, tipos_dados, info_adicionais, compromisso1, compromisso2, compromisso3, compromisso4, compromisso5) 
+                (solicitante_id, experimento_id,nome_completo, vinculo, projeto, orientador, tipos_dados, info_adicionais, compromisso1, compromisso2, compromisso3, compromisso4, compromisso5, compromisso6) 
             VALUES 
-                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (solicitante_id, experimento_id, nome_completo, vinculo, projeto, orientador, tipos_dados, info_adicionais, compromisso1, compromisso2, compromisso3, compromisso4, compromisso5))
+                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (solicitante_id, experimento_id, nome_completo, vinculo, projeto, orientador, tipos_dados, info_adicionais, compromisso1, compromisso2, compromisso3, compromisso4, compromisso5, compromisso6))
         
         conn.commit()
         return redirect(url_for('index', user=current_user))
     else:
-        return render_template('formulario.html', user=current_user)
+        return render_template('formulario.html', experimento_id = id,user=current_user)
     
 #------------------------------------------------------------EXPERIMENTOS---------------------------------------------------------------------
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$        
@@ -499,7 +500,7 @@ def experimento_dispositivo_editar(experimento_id, dispositivo_id):
                     dispositivo_json['colunas'].append(item)
 
             print(dispositivo_json)
-            return render_template('experimento-dispositivo-editar.html', dispositivo=dispositivo_json, dispositivo_id=dispositivo_id, user=current_user)
+            return render_template('experimento-dispositivo-editar.html', dispositivo=dispositivo_json, experimento_id=experimento_id, dispositivo_id=dispositivo_id, user=current_user)
         else:
             # Lidar com o caso em que o dispositivo não foi encontrado no banco de dados
             return "Dispositivo não encontrado."
@@ -554,10 +555,10 @@ def experimento_dispositivo_coleta(experimento_id, dispositivo_id):
         cur.execute("SELECT * FROM api.coleta WHERE dispositivo_id = %s", (dispositivo_id,))
         coletas = cur.fetchall()
         
-        varia = 1
+        """varia = 1
         for coluna in dispositivo_json["colunas"]:
             experimento_dispositivo_grafico(dispositivo_id, varia, coluna)
-            varia = varia+1
+            varia = varia+1"""
         
         print(dispositivo_json)
         return render_template('experimento-dispositivo-coleta.html', experimento_id=experimento_id, dispositivo=dispositivo_json, dispositivo_id=dispositivo_id, coletas=coletas, user=current_user)
@@ -812,4 +813,4 @@ def deletar_url_etapa(experimento_id,etapa_id, url_id):
 
 if __name__ == "__main__":
     #app.run(host='0.0.0.0', port=5001,threaded=True)
-    app.run(debug=True, threaded=True, port=5002)
+    app.run(debug=True, threaded=True, port=5001)

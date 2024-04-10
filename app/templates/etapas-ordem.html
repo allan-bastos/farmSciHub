@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 {% block body %}
     <div class="home-container">
+        <a href="/detalhes-experimento/{{ experimento_id }}/etapas" class="btn-voltar"><i class="fa fa-fw fa-arrow-left"></i>Voltar</a> <br>
         <h1>Ordenar Etapas</h1>
         <div id="etapas-lista" class="sortable-list">
             {% for etapa in etapas %}

@@ -4,7 +4,8 @@
 {% endblock %}
 {% block body %}
     <div class="home-container">
-        <h1>Formulário de Requisição</h1>
+        <a href="{{ url_for('experimento', experimento_id=experimento_id) }}" class="btn-voltar"><i class="fa fa-fw fa-arrow-left"></i>Voltar</a>
+        <h1>Formulário de Requisição</h1>  
         <form action="#" method="post">
             <div class="form-group">
                 <label for="nome" class="label-bold">Nome completo:</label>
@@ -89,6 +90,13 @@
                         <input type="checkbox" name="compromisso5"
                             value="Responsabilizo-me por quaisquer usos indevidos que eu promover com os dados">
                         Responsabilizo-me por quaisquer usos indevidos que eu promover com os dados
+                    </label>
+                </div>
+                <div>
+                    <label>
+                        <input type="checkbox" name="compromisso6"
+                            value="Comprometo-me a apagar os dados caso o titular negue uso dos dados ou revogue o consentimento">
+                        Comprometo-me a apagar os dados caso o titular negue uso dos dados ou revogue o consentimento
                     </label>
                 </div>
             </div>

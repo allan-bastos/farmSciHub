@@ -67,3 +67,12 @@ document.addEventListener('DOMContentLoaded', function () {
         .catch(error => console.error('Erro:', error));
     }
 });
+
+
+function confirmarExclusao(url) {
+    var confirmacao = confirm("Tem certeza que deseja continuar? Esta ação não pode ser desfeita.");
+
+    if (confirmacao) {
+        window.location.href = url;
+    }
+}

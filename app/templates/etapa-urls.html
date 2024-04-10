@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 {% block body %}
     <div class="home-container">
+        <a href="/detalhes-experimento/{{ experimento_id }}/etapas" class="btn-voltar"><i class="fa fa-fw fa-arrow-left"></i>Voltar</a> <br>
         <h1>URLs da Etapa: {{etapa[1]}}</h1>
 
 
@@ -34,7 +35,7 @@
                     <li class="list-group-item">
                         <b>URL:</b><a href="{{ url[3] }}">  {{ url[2] }} </a> <br>
                         <b>Descrição:</b> {{ url[5] }} <br>
-                        <a href="{{ url_for('deletar_url_etapa', etapa_id=etapa_id, url_id=url[0], experimento_id=experimento_id) }}" class="btn btn-danger ml-2 mt-2">Deletar</a>
+                        <a href="#" onclick="confirmarExclusao('{{ url_for('deletar_url_etapa', etapa_id=etapa_id, url_id=url[0], experimento_id=experimento_id) }}')" class="btn btn-danger ml-2 mt-2">Deletar</a>
                     </li>
                     {% endfor %}
                 </ul>

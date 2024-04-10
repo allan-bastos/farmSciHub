@@ -5,6 +5,7 @@
 
 {% block body %}
     <div class="home-container">
+        <a href="/detalhes-experimento/{{ experimento_id }}" class="btn-voltar"><i class="fa fa-fw fa-arrow-left"></i>Voltar</a>
         <h1>Solicitações de Compartilhamento</h1>
         <h3>Experimento: {{experimento[1]}}</h3>
         
@@ -23,10 +24,11 @@
                 <li><b>Compromisso 3:</b> {% if solicitacao.compromisso3 %}Aceito{% else %}Pendente{% endif %}</li>
                 <li><b>Compromisso 4:</b> {% if solicitacao.compromisso4 %}Aceito{% else %}Pendente{% endif %}</li>
                 <li><b>Compromisso 5:</b> {% if solicitacao.compromisso5 %}Aceito{% else %}Pendente{% endif %}</li>
+                <li><b>Compromisso 6:</b> {% if solicitacao.compromisso6 %}Aceito{% else %}Pendente{% endif %}</li>
             </ul>
             <div class="experiment-buttons">
                 <a href="/aceitar-solicitacao/{{ solicitacao.id }}" class="btn btn-success">Aceitar</a>
-                <a href="/recusar-solicitacao/{{ solicitacao.id }}" class="btn btn-danger">Recusar</a>
+                <a href="#" onclick="confirmarExclusao('/recusar-solicitacao/{{ solicitacao.id }}')" class="btn btn-danger">Recusar</a> 
             </div>
         </div>
         {% endfor %}
@@ -35,4 +37,6 @@
         <p class="text-center" >Ainda não há solicitações de compartilhamento para o experimento <b>{{experimento[1]}}</b>.</p>
         {% endif %}
     </div>
+
+
 {% endblock %}

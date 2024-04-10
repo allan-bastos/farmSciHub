@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 {% block body %}
     <div class="home-container">
+        <a href="/detalhes-experimento/{{ experimento[0] }}" class="btn-voltar"><i class="fa fa-fw fa-arrow-left"></i>Voltar</a>
         <h1>Inserir Experimento</h1>
         <form action="/detalhes-experimento/{{ experimento[0] }}/editar" method="post">
             <div class="form-group">
