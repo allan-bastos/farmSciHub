@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+{% block head %}
+<link rel="stylesheet" href="/static/styles.css">
+{% endblock %}
+
+{% block body %}
+<div class="home-container">
+    <a href="/detalhes-experimento/{{ experimento_id }}" class="btn-voltar"><i
+            class="fa fa-fw fa-arrow-left"></i>Voltar</a> <br>
+    <h3>Histórico de Solicitações para o experimento: {{experimento[1]}}</h3>
+    <h4>Feitas pelo usuário: {{usuario[1]}}</h4>
+    {% if solicitacoes %}
+    {% for solicitacao in solicitacoes %}
+    <div class="experiment-card">
+        <h3><b>{{ solicitacao.nome_completo }}</b></h3>
+        <h6><b>Vínculo:</b> {{ solicitacao.vinculo }}</h6>
+        <p><b>Projeto:</b> {{ solicitacao.projeto }}</p>
+        <p><b>Orientador:</b> {{ solicitacao.orientador }}</p>
+
+        <div>
+            <p><b>Tipos de dados:</b> <br>
+                <input type="checkbox" {% if solicitacao.tipo_dados[0] %} checked{% endif %} disabled> Arquivo &nbsp;
+                <input type="checkbox" {% if solicitacao.tipo_dados[1] %} checked{% endif %} disabled> Links &nbsp;
+                <input type="checkbox" {% if solicitacao.tipo_dados[2] %} checked{% endif %} disabled> Sensores
+            </p>
+        </div>
+
+        <p><b>Informações Adicionais:</b> {{ solicitacao.info_adicionais }}</p>
+
+        <div>
+            <p><b>Intenção no projeto:</b> o usuário tem interesse em {% if solicitacao.intencao == 'verificar' %}
+                <u>verificar</u> as informações do projeto
+                {% else %} <u>participar</u> do projeto. {% endif %}
+            </p>
+        </div>
+        <p><b>Informações Adicionais de Intenção:</b> {{ solicitacao.info_adicionais_req }}</p>
+
+        <ul>
+            <p><b>Tipos de dados:</b> <br>
+                <input type="checkbox" {% if solicitacao.compromisso1 %} checked{% endif %} disabled> Comprometo-me a
+                utilizar os dados exclusivamente para as finalidades do projeto supracitado <br>
+                <input type="checkbox" {% if solicitacao.compromisso2 %} checked{% endif %} disabled> Comprometo-me a
+                não distribuir cópias dos dados para terceiros <br>
+                <input type="checkbox" {% if solicitacao.compromisso3 %} checked{% endif %} disabled> Comprometo-me a
+                não manter cópias dos dados após a utilização no projeto supracitado <br>
+                <input type="checkbox" {% if solicitacao.compromisso4 %} checked{% endif %} disabled> Comprometo-me a
+                citar o Nupea e a minha instituição nas publicações decorrentes do uso dos dados <br>
+                <input type="checkbox" {% if solicitacao.compromisso5 %} checked{% endif %} disabled> Responsabilizo-me
+                por quaisquer usos indevidos que eu promover com os dados <br>
+                <input type="checkbox" {% if solicitacao.compromisso6 %} checked{% endif %} disabled> Comprometo-me a
+                apagar os dados caso o titular negue uso dos dados ou revogue o consentimento
+            </p>
+        </ul>
+        <div>
+            {% if solicitacao.status == 'aceita' %}
+            <span class="text-success">Aceita</span>
+            {% elif solicitacao.status == 'removida' %}
+            <span class="text-danger">Removida</span>
+            {% elif solicitacao.status == 'recusada' %}
+            <span class="text-danger">Recusada</span>
+            {% elif solicitacao.status == 'sobrescrita' %}
+            <span class="text-secondary">Sobrescrita</span>
+            {% else %}
+            <span class="text-warning">Em andamento</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <br><br>
+    <p class="text-center">Ainda não há solicitações de compartilhamento para o experimento <b>{{experimento[1]}}</b>.
+    </p>
+    {% endif %}
+</div>
+
+
+{% endblock %}

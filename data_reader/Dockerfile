@@ -14,4 +14,4 @@ RUN pip install -r requirements.txt
 EXPOSE 5000
 
 # Comando para iniciar a aplicação Flask
-CMD ["python3", "app/mqtt_data_reader.py"]
+CMD ["python3", "data_reader/data_reader.py"]

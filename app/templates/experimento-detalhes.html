@@ -4,27 +4,72 @@
 {% endblock %}
 
 {% block body %}
-    <div class="home-container">
+
+<div class="home-container">
         <a href="/meus-experimentos" class="btn-voltar"><i class="fa fa-fw fa-arrow-left"></i>Voltar</a>
+
+
+
+        {% set permissao_usuario = none %}
+        {% set encontrado = false %}
+
+        {% for permissao in permissoes %}
+        {%      if not encontrado %}
+        {%              if permissao[0] ==  experimento[0] or user.id == experimento[6]%}
+        {%                      set permissao_usuario = permissao %}
+        {%                      set encontrado = true %}
+
+
         <h1>Detalhes do Experimento</h1>
 
         <div class="experiment-details">
-            <h3>{{ experimento[1] }}</h3>
-            <p><b>Categoria:</b> {{ experimento[2]  }}</p>
-            <p><b>Descrição:</b> {{ experimento[4]  }}</p>
-            <p><b>Localização:</b> {{ experimento[5]  }}</p>
-            <p><b>Cadastrado em:</b> {{ experimento[3].strftime("%d/%m/%Y") }}</p>
+                <h3>{{ experimento[1] }}</h3>
+                <p><b>Categoria:</b> {{ experimento[2] }}</p>
+                <p><b>Descrição:</b> {{ experimento[4] }}</p>
+                <p><b>Localização:</b> {{ experimento[5] }}</p>
+                <p><b>Cadastrado em:</b> {{ experimento[3].strftime("%d/%m/%Y") }}</p>
 
-        </div> 
-        <div class="experiment-buttons">
-            <a href="/detalhes-experimento/{{experimento[0]}}/editar" class="btn btn-primary">Editar <i class="fa fa-fw fa-edit"></i></a>
-            <a href="#" onclick="confirmarExclusao('/detalhes-experimento/{{experimento[0]}}/deletar')" class="btn btn-danger">Excluir <i class="fa fa-fw fa-trash"></i></a>
-            <a href="/detalhes-experimento/{{experimento[0]}}/anexos" class="btn btn-warning">Anexos <i class="fa fa-fw fa-folder"></i></a>
-            <a href="/detalhes-experimento/{{experimento[0]}}/url" class="btn btn-secondary">URLs <i class="fa fa-fw fa-link"></i></a>
-            <a href="/detalhes-experimento/{{experimento[0]}}/dispositivo" class="btn btn-info">Dispositivos <i class="fa fa-fw fa-microchip"></i></a>
-            <a href="/detalhes-experimento/{{experimento[0]}}/etapas" class="btn btn-success">Etapas <i class="fa fa-fw fa-list"></i></a>
-            <a href="/solicitacoes_experimento/{{experimento[0]}}" class="btn btn-dark">Compartilhar <i class="fa fa-fw fa-share"></i></a>
         </div>
-    </div>
+        <div class="experiment-buttons">
+
+                {% if not user.permissoes[1] == 'leitura'%}
+                <a href="/detalhes-experimento/{{experimento[0]}}/editar" class="btn btn-primary">Editar <i
+                                class="fa fa-fw fa-edit"></i></a>
+                {% endif %}
+
+
+                <a href="/detalhes-experimento/{{experimento[0]}}/anexos" class="btn btn-warning">Anexos <i
+                                class="fa fa-fw fa-folder"></i></a>
+
+                <a href="/detalhes-experimento/{{experimento[0]}}/url" class="btn btn-secondary">URLs <i
+                                class="fa fa-fw fa-link"></i></a>
+                <!-- Iterar entre as permissoes -->
+                {% if not user.permissoes[3] == 'nenhuma'%}
+                <a href="/detalhes-experimento/{{experimento[0]}}/dispositivo" class="btn btn-info">Dispositivos <i
+                                class="fa fa-fw fa-microchip"></i></a>
+                {% endif %}
+                {% if not user.permissoes[2] == 'nenhuma'%}
+                <a href="/detalhes-experimento/{{experimento[0]}}/etapas" class="btn btn-success">Etapas <i
+                                class="fa fa-fw fa-list"></i></a>
+                {% endif %}
+                {% if user.id == experimento[6]%}
+                <a href="#" onclick="confirmarExclusao('/detalhes-experimento/{{experimento[0]}}/deletar')"
+                        class="btn btn-danger">Excluir <i class="fa fa-fw fa-trash"></i></a>
+
+                <a href="/compartilhados_experimento/{{experimento[0]}}" class="btn btn-dark">Compartilhar <i
+                                class="fa fa-fw fa-share"></i></a>
+                {% endif %}
+        </div>
+        {% else %}
+        <br>
+        <div class="text-center">
+                <h3>Você não tem acesso a esse experimento</h3>
+                
+        </div> 
+        {%              endif %}
+        {%      endif %}
+        {% endfor %}
+</div>
+
 
 {% endblock %}

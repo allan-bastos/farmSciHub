@@ -10,20 +10,22 @@ import matplotlib.ticker as ticker
 matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
-from datetime import datetime
+from datetime import datetime, timedelta, date
 from threading import Thread
 import pandas as pd
+
+from jinja2 import Template
 
 # Configurações postgresql
 DB_HOST = "localhost"
 #DB_HOST = "10.0.2.15"
-DB_NAME = "postgres"
-DB_USER = "postgres"
-DB_PASS = "mysecretpassword"
+DB_NAME = "farmscihub"
+DB_USER = "farmscihub_admin"
+DB_PASS = "pibiti.fsh.2010"
 DB_PORT = "5433"
 
 
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'mp3'}
  
 conn = psycopg2.connect(
     user=DB_USER,
@@ -43,22 +45,32 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 class User(UserMixin):
-    def __init__(self, id, nome, senha, nome_completo, vinculo, acessos):
+    def __init__(self, id, nome, senha, nome_completo, vinculo, acessos, permissoes):
         self.id = id
         self.nome = nome
         self.senha = senha
         self.nome_completo = nome_completo
         self.vinculo = vinculo
         self.acessos = acessos
+        self.permissoes = permissoes
         
 @login_manager.user_loader
 def load_user(user_id):
     cur = conn.cursor()
-    cur.execute("SELECT id, nome, senha, nome_completo, vinculo, acessos FROM api.usuarios WHERE id = %s", (user_id,))
+    cur.execute("SELECT id, nome, senha, nome_completo, vinculo, acessos FROM local.usuario WHERE id = %s", (user_id,))
     user_data = cur.fetchone()
     print(user_data)
     if user_data:
-        user = User(user_data[0], user_data[1], user_data[2], user_data[3], user_data[4], user_data[5])
+        cur.execute(""" SELECT experimento_id, p_experimento, exp_anexos, p_etapas, etp_anexos, p_dispositivos
+                        FROM local.permissoes
+                        WHERE usuario_id = %s
+                        AND (fim IS NULL OR fim > CURRENT_DATE);
+                        """, (user_id,))
+        permissions_data = cur.fetchall()
+        print(permissions_data)
+        user = User(user_data[0], user_data[1], user_data[2], user_data[3], user_data[4], user_data[5], permissions_data)
+        
+        
         return user
     else:
         return None
@@ -79,8 +91,19 @@ def index():
 def sobre():
     return render_template('sobre.html', user=current_user)
 
+
+@app.template_filter('get_permissao')
+def get_permissao(permissoes, experimento_id):
+    for permissao in permissoes:
+        if permissao.get('experimento_id') == experimento_id:
+            return permissao
+    return None
+
+app.jinja_env.filters['get_permissao'] = get_permissao
+
 #------------------------------------------------------------USUÁRIO---------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
+
 
 
 @app.route('/perfil', methods=['GET', 'POST'])
@@ -111,7 +134,7 @@ def login():
         nome = request.form['username']
         senha = request.form['password']
         cur = conn.cursor()
-        cur.execute("SELECT id FROM api.usuarios WHERE nome = %s and senha = %s", (nome, senha))        
+        cur.execute("SELECT id FROM local.usuario WHERE nome = %s and senha = %s", (nome, senha))        
         user_id = cur.fetchone() 
         if user_id:
             user = load_user(user_id)
@@ -133,7 +156,7 @@ def registro():
         nome_completo = request.form['nome_completo']
         vinculo = request.form['vinculo']
         cur = conn.cursor()
-        cur.execute("INSERT INTO api.usuarios (nome, senha, nome_completo, vinculo) VALUES (%s, %s, %s, %s)", (nome, senha, nome_completo, vinculo))
+        cur.execute("INSERT INTO local.usuario (nome, senha, nome_completo, vinculo) VALUES (%s, %s, %s, %s)", (nome, senha, nome_completo, vinculo))
         conn.commit()
         print("Registro POST recebido")
         print("Nome de usuário:", nome)
@@ -156,59 +179,202 @@ def editar_perfil():
         nome_completo = request.form['nome_completo']
         vinculo = request.form['vinculo']
         cur = conn.cursor()
-        cur.execute("UPDATE api.usuarios SET nome=%s, senha=%s, nome_completo=%s, vinculo=%s WHERE id=%s", (nome, senha, nome_completo, vinculo, current_user.id))
+        cur.execute("UPDATE local.usuario SET nome=%s, senha=%s, nome_completo=%s, vinculo=%s WHERE id=%s", (nome, senha, nome_completo, vinculo, current_user.id))
         conn.commit()
         return redirect(url_for('perfil', user=current_user))
     
 @app.route('/deletar-perfil', methods=['GET'])
 def deletar_perfil():
     cur = conn.cursor()
-    cur.execute("DELETE FROM api.usuarios WHERE id=%s", (current_user.id,))
+    
+    cur.execute("""UPDATE api.experimento
+        SET disponivel_para = array_remove(disponivel_para, %s);
+        """, (current_user.id,))
     conn.commit()
+    
+    cur.execute("DELETE FROM local.usuario WHERE id=%s", (current_user.id,))
+    conn.commit()
+    
     return redirect(url_for('logout', user=current_user))
 
 
 
 
-#------------------------------------------------------------FORMULARIO---------------------------------------------------------------------
-#-------------------------------------------------------------------------------------------------------------------------------------------
+#-------------------------------------------COMPARTILHAMENTO/FORMULARIO---------------------------------------------------------------------
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$        
+#$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-@app.route('/solicitacoes_experimento/<int:id>')
+@app.route('/compartilhados_experimento/<int:experimento_id>')
 @login_required
-def solicitacoes_experimento(id):
+def compartilhamento_experimento(experimento_id):
+    usuarios=[]
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    cur.execute("SELECT * FROM api.solicitacoes WHERE experimento_id = %s", (id,))
-    solicitacoes = cur.fetchall()
-    cur.execute("SELECT * FROM api.experimento WHERE id = %s", (id,))
+    cur.execute("SELECT disponivel_para FROM api.experimento WHERE id = %s", (experimento_id,))
+    usuarios_ids = cur.fetchone()
+    
+    if usuarios_ids:
+        for usuario_id in usuarios_ids['disponivel_para']:
+            cur.execute("SELECT * FROM local.usuario WHERE id = %s", (usuario_id,))
+            usuario = cur.fetchone()
+            usuarios.append(usuario)
+            
+    cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
     experimento = cur.fetchone()
-    return render_template('experimento-solicitacoes.html', solicitacoes=solicitacoes, experimento_id = id, experimento=experimento, user=current_user)
+    
+    return render_template('experimento-compartilhado.html', usuarios=usuarios, experimento_id=experimento_id, experimento=experimento,user=current_user)
 
-@app.route('/recusar-solicitacao/<int:id>')
-def recusar_solicitacao(id):
+
+
+@app.route('/solicitacoes_experimento/<int:experimento_id>')
+@login_required
+def solicitacoes_experimento(experimento_id):
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur.execute("SELECT * FROM local.solicitacoes WHERE experimento_id = %s AND status= 'aguardando' ORDER BY data_hora DESC;", (experimento_id,))
+    solicitacoes = cur.fetchall()
+    cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
+    experimento = cur.fetchone()
+    return render_template('experimento-solicitacoes.html', solicitacoes=solicitacoes, experimento_id = experimento_id, experimento=experimento, user=current_user)
+
+
+@app.route('/historico-solicitacoes-experimento/<int:experimento_id>/<int:usuario_id>/')
+@login_required
+def historico_solicitacoes_experimento(experimento_id, usuario_id):
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur.execute("SELECT * FROM local.solicitacoes WHERE experimento_id = %s AND solicitante_id = %s ORDER BY data_hora DESC;", (experimento_id, usuario_id))
+    solicitacoes = cur.fetchall()
+    cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
+    experimento = cur.fetchone()
+    cur.execute("SELECT * FROM local.usuario WHERE id = %s", (usuario_id,))
+    usuario = cur.fetchone()
+    
+    return render_template('experimento-solicitacoes-historico.html', solicitacoes=solicitacoes, experimento_id = experimento_id, experimento=experimento, usuario=usuario, user=current_user)
+
+@app.route('/<int:experimento_id>/recusar-solicitacao/<int:solicitacao_id>')
+@login_required
+def recusar_solicitacao(experimento_id, solicitacao_id):
     cur = conn.cursor()
-    cur.execute("DELETE FROM api.solicitacoes WHERE id = %s", (id,))
+    cur.execute("UPDATE local.solicitacoes SET status='recusada' WHERE id = %s", (solicitacao_id,))
     conn.commit()
-    return redirect(url_for('meus_experimentos',  user=current_user))
+    return redirect(url_for('solicitacoes_experimento',  user=current_user, experimento_id=experimento_id))
 
 @app.route('/aceitar-solicitacao/<int:id>')
+@login_required
 def aceitar_solicitacao(id):
     cur = conn.cursor()
-    cur.execute("SELECT experimento_id, solicitante_id, criador_experimento_id FROM api.solicitacoes WHERE id = %s", (id,))
+    cur.execute("SELECT experimento_id, solicitante_id, criador_experimento_id FROM local.solicitacoes WHERE id = %s", (id,))
     result = cur.fetchone()
     experimento_id = result[0]
     solicitante_id = result[1]
 
-    cur.execute("UPDATE api.usuarios SET acessos = array_append(acessos, %s) WHERE id = %s", (experimento_id, solicitante_id))
-    conn.commit()
-    
-    cur.execute("UPDATE api.experimento SET disponivel_para = array_append(disponivel_para, %s) WHERE id = %s", (solicitante_id, experimento_id))
-    conn.commit()
+    cur = conn.cursor()
+    cur.execute("SELECT solicitacao_id FROM local.permissoes WHERE usuario_id = %s AND experimento_id = %s", (solicitante_id, experimento_id))
+    existe = cur.fetchone()
+    if not existe:
+        cur.execute("""INSERT INTO local.permissoes (solicitacao_id, usuario_id, experimento_id, p_experimento, p_etapas, p_dispositivos, inicio, fim)
+        VALUES (%s, %s, %s, 'leitura', 'nenhuma', 'nenhuma', CURRENT_DATE, NULL);""", (id, solicitante_id, experimento_id))
+        conn.commit()
+        
+        cur.execute("UPDATE local.usuario SET acessos = array_append(acessos, %s) WHERE id = %s", (experimento_id, solicitante_id))
+        conn.commit()
+        
+        cur.execute("UPDATE api.experimento SET disponivel_para = array_append(disponivel_para, %s) WHERE id = %s", (solicitante_id, experimento_id))
+        conn.commit()
+        
+    else:
+        cur.execute("""UPDATE local.solicitacoes SET status = 'sobrescrita' WHERE id=%s""", (existe[0],))
+        conn.commit()
+        
+        cur.execute("""UPDATE local.permissoes SET solicitacao_id = %s WHERE usuario_id = %s AND experimento_id = %s""", (id,solicitante_id, experimento_id))
+        conn.commit()
     
     print(f"UPDATE FEITO exp{experimento_id} e user{solicitante_id}")
-    cur.execute("DELETE FROM api.solicitacoes WHERE id = %s", (id,))
+    cur.execute("UPDATE local.solicitacoes SET status='aceita' WHERE id = %s", (id,))
     conn.commit()
-    return redirect(url_for('meus_experimentos', user=current_user))
+    return redirect(url_for('cadastrar_permissoes', user=current_user, experimento_id = experimento_id, usuario_id = solicitante_id))
 
+@app.route('/detalhes-experimento/<int:experimento_id>/permissao/<int:usuario_id>', methods=['POST', 'GET'])
+@login_required
+def cadastrar_permissoes(experimento_id, usuario_id):
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
+    experimento = cur.fetchone()
+    
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM local.usuario WHERE id = %s", (usuario_id,))
+    colaborador = cur.fetchone()
+    
+    cur = conn.cursor()
+    cur.execute("SELECT p_experimento, p_etapas, p_dispositivos, exp_anexos, etp_anexos, fim FROM local.permissoes WHERE usuario_id = %s AND experimento_id = %s", (usuario_id, experimento_id))
+    permissao = cur.fetchone()
+
+    data_atual = date.today()
+    
+    if request.method == 'POST':
+        experimento_id = experimento_id
+        p_experimento = request.form['permissao_experimento']
+        p_etapas = request.form['permissao_etapas']
+        p_dispositivos = request.form['permissao_dispositivos']
+        data_fim = request.form['data_fim']
+
+        exp_arquivos = 'experimento_arquivos' in request.form
+        exp_urls = 'experimento_urls' in request.form
+        exp_anexos = [exp_arquivos, exp_urls]
+
+
+        etp_arquivos = 'etapas_arquivos' in request.form
+        etp_urls = 'etapas_urls' in request.form
+        etp_anexos = [etp_arquivos, etp_urls]
+
+        if data_fim:
+            data_fim = date.fromisoformat(data_fim)
+            
+            cur.execute("""
+                UPDATE local.permissoes 
+                SET p_experimento = %s, p_etapas = %s, p_dispositivos = %s, fim = %s, exp_anexos = %s, etp_anexos = %s
+                WHERE usuario_id = %s AND experimento_id = %s
+                """, (p_experimento, p_etapas, p_dispositivos, data_fim, exp_anexos, etp_anexos, usuario_id, experimento_id))
+            conn.commit()
+
+            
+        else:
+            cur.execute("""
+                UPDATE local.permissoes 
+                SET p_experimento = %s, p_etapas = %s, p_dispositivos = %s, fim = NULL, exp_anexos = %s, etp_anexos = %s
+                WHERE usuario_id = %s AND experimento_id = %s
+                """, (p_experimento, p_etapas, p_dispositivos, exp_anexos, etp_anexos, usuario_id, experimento_id))
+            conn.commit()
+
+        return redirect(url_for('compartilhamento_experimento', user=current_user, experimento_id = experimento_id))
+    else:
+        return render_template('experimento-permissao.html', experimento_id = experimento_id, usuario_id=usuario_id,user=current_user, permissao=permissao, experimento=experimento, colaborador=colaborador, data_atual=data_atual)
+        
+@app.route('/detalhes-experimento/<int:experimento_id>/remover-permissao/<int:usuario_id>', methods=['GET'])
+@login_required
+def remover_permissoes(experimento_id, usuario_id):
+    cur = conn.cursor()
+    cur.execute("""UPDATE api.experimento
+        SET disponivel_para = array_remove(disponivel_para, %s)
+        WHERE id = %s;
+        """, (usuario_id, experimento_id))
+    conn.commit()
+    
+    cur.execute("""UPDATE local.usuario
+        SET acessos = array_remove(acessos, %s)
+        WHERE id = %s;
+        """, (experimento_id, usuario_id))
+    conn.commit()
+    
+    cur.execute("""UPDATE local.solicitacoes 
+        SET status = 'removida'
+        WHERE status = 'aceita' AND solicitante_id = %s AND experimento_id = %s;
+    """, (usuario_id, experimento_id))
+    conn.commit()
+    
+    cur.execute("""DELETE FROM local.permissoes
+        WHERE experimento_id = %s AND usuario_id = %s;
+        """, (experimento_id, usuario_id))
+    conn.commit()
+    return redirect(url_for('compartilhamento_experimento', user=current_user, experimento_id = experimento_id))
 
 @app.route('/formulario_requisicao/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -219,10 +385,12 @@ def formulario_requisicao(id):
         if vinculo == 'outro':
             vinculo = request.form['outro_vinculo']
         projeto = request.form['projeto']
+        if projeto == 'outro':
+            projeto = request.form['outro_projeto']
         orientador = request.form['orientador']
-        tipos_dados = request.form['tipos_dados']
-        if tipos_dados == 'outro':
-            tipos_dados = request.form['outro_tipos_dados']
+        tipos_dados_1 = 'tipo_dado_1' in request.form #Arquivos
+        tipos_dados_2 = 'tipo_dado_2' in request.form #Links
+        tipos_dados_3 = 'tipo_dado_3' in request.form #Sensores
         info_adicionais = request.form['info_adicionais']
         compromisso1 = 'compromisso1' in request.form
         compromisso2 = 'compromisso2' in request.form
@@ -231,22 +399,41 @@ def formulario_requisicao(id):
         compromisso5 = 'compromisso5' in request.form
         compromisso6 = 'compromisso6' in request.form
         
+        intencao = request.form['intencao']
+        info_adicionais_req = request.form['info_adicionais_req']
+        
+        tipo_dados = [tipos_dados_1, tipos_dados_2, tipos_dados_3]
+        
         solicitante_id = current_user.id
         experimento_id = id
         
-        
+        print(tipo_dados)
         cur = conn.cursor()
         cur.execute("""
-            INSERT INTO api.solicitacoes 
-                (solicitante_id, experimento_id,nome_completo, vinculo, projeto, orientador, tipos_dados, info_adicionais, compromisso1, compromisso2, compromisso3, compromisso4, compromisso5, compromisso6) 
+            INSERT INTO local.solicitacoes 
+                (solicitante_id, experimento_id,nome_completo, vinculo, projeto, orientador, tipo_dados, info_adicionais, intencao, info_adicionais_req, compromisso1, compromisso2, compromisso3, compromisso4, compromisso5, compromisso6) 
             VALUES 
-                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (solicitante_id, experimento_id, nome_completo, vinculo, projeto, orientador, tipos_dados, info_adicionais, compromisso1, compromisso2, compromisso3, compromisso4, compromisso5, compromisso6))
+                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s)
+        """, (solicitante_id, experimento_id, nome_completo, vinculo, projeto, orientador, tipo_dados, info_adicionais, intencao, info_adicionais_req, compromisso1, compromisso2, compromisso3, compromisso4, compromisso5, compromisso6))
         
         conn.commit()
+        
+        
+        
         return redirect(url_for('index', user=current_user))
     else:
-        return render_template('formulario.html', experimento_id = id,user=current_user)
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT id FROM local.solicitacoes 
+            WHERE status = 'aguardando' AND experimento_id = %s AND solicitante_id = %s
+        """, (id, current_user.id))
+        resp = cur.fetchone()
+        if resp:
+            aguardando = True
+        else:
+            aguardando = False
+        return render_template('formulario.html', experimento_id=id, user=current_user, aguardando=aguardando)
+
     
 #------------------------------------------------------------EXPERIMENTOS---------------------------------------------------------------------
 #$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$        
@@ -301,7 +488,22 @@ def editar_experimento(experimento_id):
 @login_required
 def deletar_experimento(experimento_id):
     cur = conn.cursor()
+    
+    cur.execute("""UPDATE local.usuario
+    SET acessos = array_remove(acessos, %s);
+    """, (experimento_id,))
+    conn.commit()
+    
+    
     cur.execute("DELETE FROM api.experimento WHERE id = %s", (experimento_id,))
+    conn.commit()
+    
+    cur.execute("""    UPDATE local.usuario
+        SET acessos = array_remove(acessos, %s);
+        """, (experimento_id,))
+    conn.commit()
+
+    
     return redirect(url_for('meus_experimentos', user=current_user))
     
 @app.route('/experimento/<int:experimento_id>')
@@ -318,7 +520,8 @@ def detalhes_experimento(experimento_id):
     cur = conn.cursor()
     cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
     experimento = cur.fetchone()
-    return render_template('experimento-detalhes.html', experimento = experimento, user=current_user)
+    print(experimento)
+    return render_template('experimento-detalhes.html', experimento = experimento, permissoes = current_user.permissoes ,user=current_user)
 
 @app.route('/meus-experimentos')
 @login_required
@@ -438,8 +641,26 @@ def experimento_dispositivos(experimento_id):
     experimento = cur.fetchone()
     return render_template('experimento-dispositivos.html', experimento_id=experimento_id, experimento=experimento,dispositivos=dispositivos, user=current_user)
 
+@app.route('/ativar-dispositivo/<int:experimento_id>/<int:dispositivo_id>', methods=['GET'])
+@login_required
+def ativar_dispositivo(experimento_id, dispositivo_id):
+    cur = conn.cursor()
+    cur.execute("UPDATE api.dispositivo SET ativo = True WHERE id = %s;", (dispositivo_id,))
+    conn.commit()
 
-import json
+    return redirect(url_for('experimento_dispositivos', experimento_id=experimento_id, user=current_user))
+    
+@app.route('/desativar-dispositivo/<int:experimento_id>/<int:dispositivo_id>', methods=['GET'])
+@login_required
+def desativar_dispositivo(experimento_id, dispositivo_id):
+    cur = conn.cursor()
+    cur.execute("UPDATE api.dispositivo SET ativo = False WHERE id = %s;", (dispositivo_id,))
+    conn.commit()
+
+    return redirect(url_for('experimento_dispositivos', experimento_id=experimento_id, user=current_user))
+    
+
+
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/inserir', methods=['GET', 'POST'])
 @login_required
@@ -474,7 +695,7 @@ def experimento_dispositivos_inserir(experimento_id):
         cur = conn.cursor()
         cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
         experimento = cur.fetchone()
-        return render_template('experimento-dispositivo-inserir.html', experimento_id=experimento_id, experimento=experimento, user=current_user)
+        return render_template('dispositivo-inserir.html', experimento_id=experimento_id, experimento=experimento, user=current_user)
 
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/editar', methods=['GET', 'POST'])
@@ -500,7 +721,7 @@ def experimento_dispositivo_editar(experimento_id, dispositivo_id):
                     dispositivo_json['colunas'].append(item)
 
             print(dispositivo_json)
-            return render_template('experimento-dispositivo-editar.html', dispositivo=dispositivo_json, experimento_id=experimento_id, dispositivo_id=dispositivo_id, user=current_user)
+            return render_template('dispositivo-editar.html', dispositivo=dispositivo_json, experimento_id=experimento_id, dispositivo_id=dispositivo_id, user=current_user)
         else:
             # Lidar com o caso em que o dispositivo não foi encontrado no banco de dados
             return "Dispositivo não encontrado."
@@ -555,13 +776,13 @@ def experimento_dispositivo_coleta(experimento_id, dispositivo_id):
         cur.execute("SELECT * FROM api.coleta WHERE dispositivo_id = %s", (dispositivo_id,))
         coletas = cur.fetchall()
         
-        """varia = 1
+        varia = 1
         for coluna in dispositivo_json["colunas"]:
             experimento_dispositivo_grafico(dispositivo_id, varia, coluna)
-            varia = varia+1"""
+            varia = varia+1
         
         print(dispositivo_json)
-        return render_template('experimento-dispositivo-coleta.html', experimento_id=experimento_id, dispositivo=dispositivo_json, dispositivo_id=dispositivo_id, coletas=coletas, user=current_user)
+        return render_template('dispositivo-coleta.html', experimento_id=experimento_id, dispositivo=dispositivo_json, dispositivo_id=dispositivo_id, coletas=coletas, user=current_user)
 
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/deletar')
@@ -583,15 +804,15 @@ def experimento_dispositivo_coleta_deletar(experimento_id, dispositivo_id):
     return redirect(url_for('experimento_dispositivo_coleta', experimento_id=experimento_id, dispositivo_id=dispositivo_id,user=current_user))
 
 
-#@app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/grafico/<int:coluna_id>/<coluna>')
+@app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/grafico/<int:coluna_id>/<coluna>')
 def experimento_dispositivo_grafico(dispositivo_id, coluna_id, coluna):
     coluna_dict = coluna
-    print(coluna_dict)
     cur = conn.cursor()
     cur.execute("SELECT a%s, gerado_em  FROM api.coleta WHERE dispositivo_id = %s", (coluna_id, dispositivo_id,))
     coletas = cur.fetchall()
     
     datas = [coleta[1] for coleta in coletas]
+    print(datas)
     tipo_coluna = coluna_dict.get('tipo')
     if tipo_coluna == 'REAL' or tipo_coluna == 'real':
         valores = []
@@ -605,7 +826,7 @@ def experimento_dispositivo_grafico(dispositivo_id, coluna_id, coluna):
         valores = [coleta[0] for coleta in coletas]
 
     # Converter as datas para um formato adequado para plotagem
-    datas_plot = [datetime.strptime(str(data), '%Y-%m-%d %H:%M:%S.%f') for data in datas]
+    datas_plot = [(datetime.strptime(str(data), '%Y-%m-%d %H:%M:%S.%f') - timedelta(hours=3)).strftime('%d/%m %H:%M') for data in datas]
 
 
     plt.figure(figsize=(18, 8))
@@ -623,7 +844,7 @@ def experimento_dispositivo_grafico(dispositivo_id, coluna_id, coluna):
     
     plt.tight_layout()
     # Salvar o gráfico como uma imagem
-    imagem_grafico = f'/home/allan/pibiti/font-test/static/graficos/grafico-{dispositivo_id}-{coluna_dict["nome"]}.png'
+    imagem_grafico = f'/home/allan/pibiti/plataforma_gestao_agropecuaria/app/static/graficos/grafico-{dispositivo_id}-{coluna_dict["nome"]}.png'
     
     plt.savefig(imagem_grafico)
     plt.close()

@@ -5,8 +5,10 @@
 
 {% block body %}
 <div class="home-container">
-    <a href="/detalhes-experimento/{{ experimento_id }}" class="btn-voltar"><i class="fa fa-fw fa-arrow-left"></i>Experimento</a> <br>
-    <a href="/detalhes-experimento/{{ experimento_id }}/etapas" class="btn-voltar"><i class="fa fa-fw fa-arrow-left"></i>Etapas</a> <br>
+    <a href="/detalhes-experimento/{{ experimento_id }}" class="btn-voltar"><i
+            class="fa fa-fw fa-arrow-left"></i>Experimento</a> <br>
+    <a href="/detalhes-experimento/{{ experimento_id }}/etapas" class="btn-voltar"><i
+            class="fa fa-fw fa-arrow-left"></i>Etapas</a> <br>
     <div class="d-flex justify-content-between align-items-center">
         <h2 class="mb-0 ml-0">Dispositivos do experimento: {{experimento[1]}}</h2>
         <div class="ml-auto">
@@ -27,10 +29,26 @@
         <h6><b>ID: </b>{{dispositivo[0]}}</h6>
         <p><b>Descrição: </b>{{dispositivo[4]}}</p>
         <!-- <p><b>Colunas: </b>{{dispositivo[8]}}</p> -->
+        <p><b>Token: </b>
+            <span id="token_display_{{ dispositivo[0] }}">••••••••••</span>
+            <button class="btn btn-link show-token"
+                onclick="mostrarToken('{{ dispositivo[9] }}', '{{ dispositivo[0] }}')"
+                id="token_button_{{ dispositivo[0] }}"><i class="fa fa-fw fa-eye"></i></button>
+        </p>
+
         <div class="col-8">
-            <a href="{{ url_for('experimento_dispositivo_editar', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}" class="btn btn-primary mx-2">Editar <i class="fa fa-fw fa-edit"></i></a>
-            <a href="#" onclick="confirmarExclusao('{{ url_for('experimento_dispositivo_deletar', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}')" class="btn btn-danger mx-2">Excluir <i class="fa fa-fw fa-trash"></i></a>
-            <a href="{{ url_for('experimento_dispositivo_coleta', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}" class="btn btn-warning mx-2">Coletas <i class="fa fa-fw fa-folder"></i></a>
+            <a href="{{ url_for('experimento_dispositivo_editar', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}"
+                class="btn btn-primary mx-2">Editar <i class="fa fa-fw fa-edit"></i></a>
+            <a href="#"
+                onclick="confirmarExclusao('{{ url_for('experimento_dispositivo_deletar', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}')"
+                class="btn btn-danger mx-2">Excluir <i class="fa fa-fw fa-trash"></i></a>
+            {% if dispositivo[2] %}
+            <a href="/desativar-dispositivo/{{ experimento[0] }}/{{ dispositivo[0] }}" class="btn btn-success btn-sm">Sim</a>
+            {% else %}
+            <a href="/ativar-dispositivo/{{ experimento[0] }}/{{ dispositivo[0] }}" class="btn btn-danger btn-sm">Não</a>
+            {% endif %}
+            <a href="{{ url_for('experimento_dispositivo_coleta', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}"
+                class="btn btn-warning mx-2">Coletas <i class="fa fa-fw fa-folder"></i></a>
         </div>
     </div>
     {% endfor %}
@@ -42,5 +60,22 @@
     {% endif %}
 
 </div>
+
+<script>
+    function mostrarToken(token, dispositivoId) {
+        var tokenSpan = document.getElementById('token_display_' + dispositivoId);
+        var tokenButton = document.getElementById('token_button_' + dispositivoId);
+
+        if (tokenSpan.textContent === '••••••••••') {
+            tokenSpan.textContent = token;
+            tokenButton.innerHTML = '<i class="fa fa-fw fa-eye-slash"></i>';
+        } else {
+
+            tokenSpan.textContent = '••••••••••';
+            tokenButton.innerHTML = '<i class="fa fa-fw fa-eye"></i>';
+        }
+    }
+</script>
+
 
 {% endblock %}

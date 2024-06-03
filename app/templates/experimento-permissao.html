@@ -1,0 +1,107 @@
+{% extends "layout.html" %}
+{% block head %}
+<link rel="stylesheet" href="/static/styles.css">
+{% endblock %}
+
+{% block body %}
+<div class="home-container">
+    <a href="/detalhes-experimento/{{ experimento_id }}" class="btn-voltar"><i
+            class="fa fa-fw fa-arrow-left"></i>Voltar</a><br>
+    <div class="d-flex justify-content-between align-items-center">
+        <h2>Permissoes do Experimento: {{experimento[1]}}</h2>
+        <a href="{{url_for('historico_solicitacoes_experimento', user=current_user, experimento_id = experimento_id, usuario_id = colaborador[0])}}"
+            class="btn btn-warning" style="margin-right: 1rem;">Solicitações do colaborador</a>
+    </div>
+    <div class="experiment-card">
+        <h4>Usuario: {{colaborador[1]}}</h4> <br>
+        <p><b>Nome completo:</b> {{colaborador[3]}}</p>
+        <p><b>Instituição:</b> {{colaborador[4]}}</p>
+
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="experiment-buttons">
+                <h4>Alterar permissões:</h4>
+                <form action="/detalhes-experimento/{{experimento_id}}/permissao/{{usuario_id}}" method="post">
+                    <div class="form-group">
+                        <label for="permissao_experimento">Permissão para o experimento:</label>
+                        <select class="form-control" id="permissao_experimento" name="permissao_experimento" onchange="toggleCheckboxes('experimento')">
+                            <option value="leitura" {% if permissao[0]=='leitura' %} selected {% endif %}>Leitura</option>
+                            <option value="edicao" {% if permissao[0]=='edicao' %} selected {% endif %}>Edição</option>
+                        </select>
+                    </div>
+                    <div id="checkboxes_experimento" class="form-group" style="display: none; font-size: 0.85rem">
+                        <label>Também para:</label> &nbsp;
+                        <input type="checkbox" id="experimento_arquivos" {% if permissao[3][0] %} checked{% endif %} name="experimento_arquivos" value="true">
+                        <label for="experimento_arquivos">Arquivos</label> &nbsp;
+                        <input type="checkbox" id="experimento_urls" {% if permissao[3][1] %} checked{% endif %} name="experimento_urls" value="true">
+                        <label for="experimento_urls">URLs</label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="permissao_etapas">Permissão para as etapas:</label>
+                        <select class="form-control" id="permissao_etapas" name="permissao_etapas" onchange="toggleCheckboxes('etapas')">
+                            <option value="leitura" {% if permissao[1]=='leitura' %} selected {% endif %}>Leitura</option>
+                            <option value="edicao" {% if permissao[1]=='edicao' %} selected {% endif %}>Edição</option>
+                            <option value="remocao" {% if permissao[1]=='remocao' %} selected {% endif %}>Edição + Remoção</option>
+                            <option value="nenhuma" {% if permissao[1]=='nenhuma' %} selected {% endif %}>Nenhuma</option>
+                        </select>
+                    </div>
+                    <div id="checkboxes_etapas" class="form-group" style="display: none; font-size: 0.85rem">
+                        <label>Também para:</label> &nbsp;
+                        <input type="checkbox" id="etapas_arquivos" {% if permissao[4][0] %} checked{% endif %} name="etapas_arquivos" value="true">
+                        <label for="etapas_arquivos">Arquivos</label> &nbsp;
+                        <input type="checkbox" id="etapas_urls" {% if permissao[4][1] %} checked{% endif %} name="etapas_urls" value="true">
+                        <label for="etapas_urls">URLs</label>
+                    </div>
+                    <div class="form-group">
+                        <label for="permissao_dispositivos">Permissão para os dispositivos:</label>
+                        <select class="form-control" id="permissao_dispositivos" name="permissao_dispositivos">
+                            <option value="leitura" {% if permissao[2]=='leitura' %} selected {% endif %}>Leitura
+                            </option>
+                            <option value="edicao" {% if permissao[2]=='edicao' %} selected {% endif %}>Edição</option>
+                            <option value="remocao" {% if permissao[2]=='remocao' %} selected {% endif %}>Edição +
+                                Remoção</option>
+                            <option value="nenhuma" {% if permissao[2]=='nenhuma' %} selected {% endif %}>Nenhuma
+                            </option>
+                        </select>
+                    </div>
+
+
+                    <div class="form-group">
+                        <label for="data_maxima">Fim da permissao:</label>
+                        <input type="date" class="form-control" id="data_fim" name="data_fim" value="{{ permissao[3] }}"
+                            min="{{ data_atual.strftime('%Y-%m-%d') }}">
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button type="submit" class="btn btn-primary">Cadastrar Permissões</button>
+                        <a href="{{url_for('remover_permissoes', user=current_user, experimento_id = experimento_id, usuario_id = usuario_id)}}"
+                            class="btn btn-danger" style="margin-left: 5px;">Remover acesso</a>
+                        <a href="#" class="btn btn-warning" style="margin-left: 5px;">Solicitação do colaborador</a>
+                    </div>
+                </form>
+                <br>
+
+            </div>
+        </div>
+    </div>
+
+
+</div>
+
+<script>
+    function toggleCheckboxes(type) {
+        let permission = document.getElementById('permissao_' + type).value;
+        let checkboxes = document.getElementById('checkboxes_' + type);
+        if (permission === 'edicao' || permission === 'remocao') {
+            checkboxes.style.display = 'block';
+        } else {
+            checkboxes.style.display = 'none';
+        }
+    }
+
+    // Initialize visibility based on current selections
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleCheckboxes('experimento');
+        toggleCheckboxes('etapas');
+    });
+</script>
+{% endblock %}

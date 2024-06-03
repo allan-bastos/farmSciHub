@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% block head %}
+<link rel="stylesheet" href="/static/styles.css">
+{% endblock %}
+
+{% block body %}
+<div class="home-container">
+    <a href="/detalhes-experimento/{{ experimento_id }}" class="btn-voltar"><i
+            class="fa fa-fw fa-arrow-left"></i>Voltar</a><br>
+    <div class="d-flex justify-content-between align-items-center">
+        <h2>Compartilhamento do Experimento: {{experimento[1]}}</h2>
+        <a href="/solicitacoes_experimento/{{experimento[0]}}" class="btn btn-dark">Novas solicitações<i
+                class="fa fa-fw fa-share"></i></a>
+    </div>
+    {% if usuarios %}
+    {% for colaborador in usuarios %}
+    <div class="experiment-card">
+        <h4>Usuario: {{colaborador[1]}}</h4>
+        <p><b>Nome completo:</b> {{colaborador[3]}}</p>
+        <p><b>Instituição:</b> {{colaborador[4]}}</p>
+
+        <div class="d-flex justify-content-between align-items-center">
+            <a href="{{url_for('cadastrar_permissoes', user=current_user, experimento_id = experimento_id, usuario_id = colaborador[0])}}" class="btn btn-secondary" style="margin-right: 10px;">Permissões do colaborador</a>
+
+            <a href="{{url_for('historico_solicitacoes_experimento', user=current_user, experimento_id = experimento_id, usuario_id = colaborador[0])}}" class="btn btn-warning" style="margin-right: 1rem;">Solicitações do colaborador</a>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <br><br>
+    <p class="text-center">Esse experimento ainda não foi compartilhado <b>{{experimento[1]}}</b>.</p>
+    {% endif %}
+</div>
+
+
+{% endblock %}
