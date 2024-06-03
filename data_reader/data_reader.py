@@ -39,11 +39,12 @@ def insertPayloadPostgres(payload_data):
         """
         
         comando_status = """
-            SELECT status FROM api.dispositivo WHERE id = %s;
+            SELECT ativo FROM api.dispositivo WHERE id = %s;
         """
         cursor.execute(comando_token, (dispositivo_id,))
-        dispositivo_token = cursor.fetchone()[0]
-        if dispositivo_token:
+        existe = cursor.fetchone()
+        if existe:
+            dispositivo_token = existe[0]
             if usuario_token == dispositivo_token:
                 cursor.execute(comando_status, (dispositivo_id,))
                 dispositivo_status = cursor.fetchone()[0]

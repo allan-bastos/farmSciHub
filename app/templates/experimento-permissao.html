@@ -28,6 +28,13 @@
                             <option value="edicao" {% if permissao[0]=='edicao' %} selected {% endif %}>Edição</option>
                         </select>
                     </div>
+                    <div id="checkboxes_leitura_experimento" class="form-group" style="display: none; font-size: 0.85rem" >
+                        <label>Também para:</label> &nbsp;
+                        <input type="checkbox" id="etapas_arquivos" checked name="etapas_arquivos" value="true" disabled>
+                        <label for="etapas_arquivos">Arquivos</label> &nbsp;
+                        <input type="checkbox" id="etapas_urls" checked name="etapas_urls" value="true" disabled>
+                        <label for="etapas_urls">URLs</label>
+                    </div>
                     <div id="checkboxes_experimento" class="form-group" style="display: none; font-size: 0.85rem">
                         <label>Também para:</label> &nbsp;
                         <input type="checkbox" id="experimento_arquivos" {% if permissao[3][0] %} checked{% endif %} name="experimento_arquivos" value="true">
@@ -35,7 +42,7 @@
                         <input type="checkbox" id="experimento_urls" {% if permissao[3][1] %} checked{% endif %} name="experimento_urls" value="true">
                         <label for="experimento_urls">URLs</label>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="permissao_etapas">Permissão para as etapas:</label>
                         <select class="form-control" id="permissao_etapas" name="permissao_etapas" onchange="toggleCheckboxes('etapas')">
@@ -44,6 +51,13 @@
                             <option value="remocao" {% if permissao[1]=='remocao' %} selected {% endif %}>Edição + Remoção</option>
                             <option value="nenhuma" {% if permissao[1]=='nenhuma' %} selected {% endif %}>Nenhuma</option>
                         </select>
+                    </div>
+                    <div id="checkboxes_leitura_etapas" class="form-group" style="display: none; font-size: 0.85rem">
+                        <label>Também para:</label> &nbsp;
+                        <input type="checkbox" id="etapas_arquivos" checked name="etapas_arquivos" value="true" disabled>
+                        <label for="etapas_arquivos">Arquivos</label> &nbsp;
+                        <input type="checkbox" id="etapas_urls" checked name="etapas_urls" value="true" disabled>
+                        <label for="etapas_urls">URLs</label>
                     </div>
                     <div id="checkboxes_etapas" class="form-group" style="display: none; font-size: 0.85rem">
                         <label>Também para:</label> &nbsp;
@@ -91,10 +105,16 @@
     function toggleCheckboxes(type) {
         let permission = document.getElementById('permissao_' + type).value;
         let checkboxes = document.getElementById('checkboxes_' + type);
+        let checkboxes_leitura = document.getElementById('checkboxes_leitura_'+type);
         if (permission === 'edicao' || permission === 'remocao') {
             checkboxes.style.display = 'block';
+            checkboxes_leitura.style.display = 'none';
+        } else if (permission === 'leitura'){
+            checkboxes.style.display = 'none';
+            checkboxes_leitura.style.display = 'block';
         } else {
             checkboxes.style.display = 'none';
+            checkboxes_leitura.style.display = 'none';
         }
     }
 

@@ -634,7 +634,7 @@ def deletar_url_experimento(experimento_id, url_id):
 @login_required
 def experimento_dispositivos(experimento_id):
     cur = conn.cursor()
-    cur.execute("SELECT * FROM api.dispositivo WHERE experimento_id = %s", (experimento_id,))
+    cur.execute("SELECT * FROM api.dispositivo WHERE experimento_id = %s ORDER BY criado_em", (experimento_id,))
     dispositivos = cur.fetchall()
     print(dispositivos)
     cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))

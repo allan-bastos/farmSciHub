@@ -31,21 +31,27 @@
         <!-- <p><b>Colunas: </b>{{dispositivo[8]}}</p> -->
         <p><b>Token: </b>
             <span id="token_display_{{ dispositivo[0] }}">••••••••••</span>
+            {% if dispositivo[6] == user.id or user.id == experimento[6]%}
             <button class="btn btn-link show-token"
                 onclick="mostrarToken('{{ dispositivo[9] }}', '{{ dispositivo[0] }}')"
                 id="token_button_{{ dispositivo[0] }}"><i class="fa fa-fw fa-eye"></i></button>
+            {% endif %}
         </p>
 
         <div class="col-8">
+            {% if dispositivo[6] == user.id or user.id == experimento[6]%}
             <a href="{{ url_for('experimento_dispositivo_editar', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}"
                 class="btn btn-primary mx-2">Editar <i class="fa fa-fw fa-edit"></i></a>
             <a href="#"
                 onclick="confirmarExclusao('{{ url_for('experimento_dispositivo_deletar', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}')"
                 class="btn btn-danger mx-2">Excluir <i class="fa fa-fw fa-trash"></i></a>
             {% if dispositivo[2] %}
-            <a href="/desativar-dispositivo/{{ experimento[0] }}/{{ dispositivo[0] }}" class="btn btn-success btn-sm">Sim</a>
+            <a href="/desativar-dispositivo/{{ experimento[0] }}/{{ dispositivo[0] }}"
+                class="btn btn-success btn-sm">Habilitado</a>
             {% else %}
-            <a href="/ativar-dispositivo/{{ experimento[0] }}/{{ dispositivo[0] }}" class="btn btn-danger btn-sm">Não</a>
+            <a href="/ativar-dispositivo/{{ experimento[0] }}/{{ dispositivo[0] }}"
+                class="btn btn-secondary btn-sm">Desabilitado</a>
+            {% endif %}
             {% endif %}
             <a href="{{ url_for('experimento_dispositivo_coleta', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}"
                 class="btn btn-warning mx-2">Coletas <i class="fa fa-fw fa-folder"></i></a>
