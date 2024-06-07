@@ -10,14 +10,9 @@
 
 
 
-        {% set permissao_usuario = none %}
-        {% set encontrado = false %}
 
-        {% for permissao in permissoes %}
-        {%      if not encontrado %}
-        {%              if permissao[0] ==  experimento[0] or user.id == experimento[6]%}
-        {%                      set permissao_usuario = permissao %}
-        {%                      set encontrado = true %}
+        {% if permissao != 'nenhuma' or user.id == experimento[6]%}
+
 
 
         <h1>Detalhes do Experimento</h1>
@@ -32,7 +27,7 @@
         </div>
         <div class="experiment-buttons">
 
-                {% if not user.permissoes[1] == 'leitura'%}
+                {% if not permissao[1] == 'leitura' or user.id == experimento[6]%}
                 <a href="/detalhes-experimento/{{experimento[0]}}/editar" class="btn btn-primary">Editar <i
                                 class="fa fa-fw fa-edit"></i></a>
                 {% endif %}
@@ -44,11 +39,11 @@
                 <a href="/detalhes-experimento/{{experimento[0]}}/url" class="btn btn-secondary">URLs <i
                                 class="fa fa-fw fa-link"></i></a>
                 <!-- Iterar entre as permissoes -->
-                {% if not user.permissoes[3] == 'nenhuma'%}
+                {% if not permissao[5] == 'nenhuma'%}
                 <a href="/detalhes-experimento/{{experimento[0]}}/dispositivo" class="btn btn-info">Dispositivos <i
                                 class="fa fa-fw fa-microchip"></i></a>
                 {% endif %}
-                {% if not user.permissoes[2] == 'nenhuma'%}
+                {% if not permissao[3] == 'nenhuma'%}
                 <a href="/detalhes-experimento/{{experimento[0]}}/etapas" class="btn btn-success">Etapas <i
                                 class="fa fa-fw fa-list"></i></a>
                 {% endif %}
@@ -66,9 +61,7 @@
                 <h3>Você não tem acesso a esse experimento</h3>
                 
         </div> 
-        {%              endif %}
         {%      endif %}
-        {% endfor %}
 </div>
 
 

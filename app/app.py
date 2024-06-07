@@ -517,11 +517,17 @@ def experimento(experimento_id):
 @app.route('/detalhes-experimento/<int:experimento_id>')
 @login_required
 def detalhes_experimento(experimento_id):
+    permissao_usuario = 'nenhuma'
+    for permissao in current_user.permissoes:
+        if permissao[0] ==  experimento_id:
+            permissao_usuario = permissao
+    
+    
     cur = conn.cursor()
     cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
     experimento = cur.fetchone()
     print(experimento)
-    return render_template('experimento-detalhes.html', experimento = experimento, permissoes = current_user.permissoes ,user=current_user)
+    return render_template('experimento-detalhes.html', experimento = experimento, permissao = permissao_usuario ,user=current_user)
 
 @app.route('/meus-experimentos')
 @login_required
@@ -633,13 +639,19 @@ def deletar_url_experimento(experimento_id, url_id):
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo', methods=['GET'])
 @login_required
 def experimento_dispositivos(experimento_id):
+    permissao_usuario = 'nenhuma'
+    for permissao in current_user.permissoes:
+        if permissao[0] ==  experimento_id:
+            permissao_usuario = permissao
+    
+    
     cur = conn.cursor()
     cur.execute("SELECT * FROM api.dispositivo WHERE experimento_id = %s ORDER BY criado_em", (experimento_id,))
     dispositivos = cur.fetchall()
     print(dispositivos)
     cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
     experimento = cur.fetchone()
-    return render_template('experimento-dispositivos.html', experimento_id=experimento_id, experimento=experimento,dispositivos=dispositivos, user=current_user)
+    return render_template('experimento-dispositivos.html', experimento_id=experimento_id,permissao=permissao_usuario, experimento=experimento,dispositivos=dispositivos, user=current_user)
 
 @app.route('/ativar-dispositivo/<int:experimento_id>/<int:dispositivo_id>', methods=['GET'])
 @login_required
@@ -669,24 +681,11 @@ def experimento_dispositivos_inserir(experimento_id):
         nome = request.form['nome']
         descricao = request.form['descricao']
         mac_address = request.form['mac_address']
-        colunas = request.form.getlist('coluna[]')
-
-        colunas_detalhes = []
-        for i in range(0, len(colunas), 4):
-            coluna = {
-                'nome': colunas[i],
-                'descricao': colunas[i+1],
-                'tipo': colunas[i+2],
-                'unidade': colunas[i+3]
-            }
-            colunas_detalhes.append(coluna)
-        colunas_json = json.dumps(colunas_detalhes)
-        
         
         ativo = 'false'
         
         cur = conn.cursor()
-        cur.execute("INSERT INTO api.dispositivo (experimento_id, nome, mac_address, descricao, cadastrado_por, ativo, colunas) VALUES (%s, %s, %s, %s, %s, %s, %s)", (experimento_id, nome, mac_address, descricao, current_user.id, ativo, [colunas_json]))
+        cur.execute("INSERT INTO api.dispositivo (experimento_id, nome, mac_address, descricao, cadastrado_por, ativo) VALUES (%s, %s, %s, %s, %s, %s)", (experimento_id, nome, mac_address, descricao, current_user.id, ativo))
         conn.commit()
         
         return redirect(url_for('experimento_dispositivos', experimento_id=experimento_id))
@@ -697,7 +696,6 @@ def experimento_dispositivos_inserir(experimento_id):
         experimento = cur.fetchone()
         return render_template('dispositivo-inserir.html', experimento_id=experimento_id, experimento=experimento, user=current_user)
 
-
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/editar', methods=['GET', 'POST'])
 @login_required
 def experimento_dispositivo_editar(experimento_id, dispositivo_id):
@@ -705,84 +703,42 @@ def experimento_dispositivo_editar(experimento_id, dispositivo_id):
         cur = conn.cursor()
         cur.execute("SELECT * FROM api.dispositivo WHERE id = %s", (dispositivo_id,))
         dispositivo = cur.fetchone()
-        if dispositivo:
-            dispositivo_json = {
-                'id': dispositivo_id,
-                'nome': dispositivo[1],
-                'descricao': dispositivo[4],
-                'mac_address': dispositivo[5],
-                'ativo': dispositivo[2],
-                'colunas': []
-            }
-            if dispositivo[8]:  # Verifica se o campo de colunas não está vazio
-                string=dispositivo[8][0]
-                lista = json.loads(string)  # Converte a string JSON em objeto Python
-                for item in lista:
-                    dispositivo_json['colunas'].append(item)
-
-            print(dispositivo_json)
-            return render_template('dispositivo-editar.html', dispositivo=dispositivo_json, experimento_id=experimento_id, dispositivo_id=dispositivo_id, user=current_user)
-        else:
-            # Lidar com o caso em que o dispositivo não foi encontrado no banco de dados
-            return "Dispositivo não encontrado."
+        
+        return render_template('dispositivo-editar.html', dispositivo=dispositivo, experimento_id=experimento_id, dispositivo_id=dispositivo_id, user=current_user)
 
     elif request.method == 'POST':
         nome = request.form['nome']
         descricao = request.form['descricao']
         mac_address = request.form['mac_address']
-        colunas = request.form.getlist('coluna[]')
-
-        colunas_detalhes = []
-        for i in range(0, len(colunas), 4):
-            coluna = {
-                'nome': colunas[i],
-                'descricao': colunas[i+1],
-                'tipo': colunas[i+2],
-                'unidade': colunas[i+3]
-            }
-            colunas_detalhes.append(coluna)
-        colunas_json = json.dumps(colunas_detalhes)
+        
         ativo = 'false'
 
-        
         cur = conn.cursor()
-        cur.execute("UPDATE api.dispositivo SET nome=%s, descricao=%s, mac_address=%s, ativo=%s, colunas=%s WHERE id=%s", (nome, descricao, mac_address, ativo, [colunas_json], dispositivo_id))
+        cur.execute("UPDATE api.dispositivo SET nome=%s, descricao=%s, mac_address=%s, ativo=%s WHERE id=%s", (nome, descricao, mac_address, ativo, dispositivo_id))
         conn.commit()
         return redirect(url_for('experimento_dispositivos', experimento_id=experimento_id, user=current_user))
 
-
-@app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta', methods=['GET'])
+@app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/', methods=['GET'])
 @login_required
 def experimento_dispositivo_coleta(experimento_id, dispositivo_id):
+    permissao_usuario = 'nenhuma'
+    for permissao in current_user.permissoes:
+        if permissao[0] ==  experimento_id:
+            permissao_usuario = permissao
+
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM api.coleta WHERE dispositivo_id = %s ORDER BY nome", (dispositivo_id,))
+    coletas = cur.fetchall()
+    
     cur = conn.cursor()
     cur.execute("SELECT * FROM api.dispositivo WHERE id = %s", (dispositivo_id,))
     dispositivo = cur.fetchone()
-    if dispositivo:
-        dispositivo_json = {
-            'id': dispositivo_id,
-            'nome': dispositivo[1],
-            'descricao': dispositivo[4],
-            'mac_address': dispositivo[5],
-            'ativo': dispositivo[2],
-            'colunas': []
-        }
-        if dispositivo[8]:  # Verifica se o campo de colunas não está vazio
-            string=dispositivo[8][0]
-            lista = json.loads(string)  # Converte a string JSON em objeto Python
-            for item in lista:
-                dispositivo_json['colunas'].append(item)
-
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM api.coleta WHERE dispositivo_id = %s", (dispositivo_id,))
-        coletas = cur.fetchall()
         
-        varia = 1
-        for coluna in dispositivo_json["colunas"]:
-            experimento_dispositivo_grafico(dispositivo_id, varia, coluna)
-            varia = varia+1
-        
-        print(dispositivo_json)
-        return render_template('dispositivo-coleta.html', experimento_id=experimento_id, dispositivo=dispositivo_json, dispositivo_id=dispositivo_id, coletas=coletas, user=current_user)
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
+    experimento = cur.fetchone()
+    
+    return render_template('dispositivo-coleta.html', experimento_id=experimento_id, dispositivo=dispositivo, permissao=permissao_usuario, dispositivo_id=dispositivo_id, coletas=coletas,experimento=experimento, user=current_user)
 
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/deletar')
@@ -794,11 +750,166 @@ def experimento_dispositivo_deletar(experimento_id, dispositivo_id):
 
     return redirect(url_for('experimento_dispositivos', experimento_id=experimento_id, user=current_user))
 
-@app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/deletar')
+####################################################    COLETAS    #########################################################
+############################################################################################################################
+
+
+@app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/inserir', methods=['GET', 'POST'])
 @login_required
-def experimento_dispositivo_coleta_deletar(experimento_id, dispositivo_id):
+def coleta_inserir(experimento_id, dispositivo_id):
+    if request.method == 'POST':
+        nome = request.form['nome']
+        atributos = request.form.getlist('coluna[]')
+
+        atributos_detalhes = []
+        for i in range(0, len(atributos), 4):
+            atributo = {
+                'nome': atributos[i],
+                'descricao': atributos[i+1],
+                'tipo': atributos[i+2],
+                'unidade': atributos[i+3]
+            }
+            atributos_detalhes.append(atributo)
+        atributos_json = json.dumps(atributos_detalhes)
+        
+        
+        cur = conn.cursor()
+        cur.execute("UPDATE api.coleta SET status = false, data_fechamento = current_timestamp WHERE dispositivo_id = %s", (dispositivo_id,))
+        conn.commit()
+        
+        
+        cur.execute("INSERT INTO api.coleta (dispositivo_id, nome, atributos) VALUES (%s, %s, %s)", (dispositivo_id, nome, [atributos_json]))
+        conn.commit()
+        
+        return redirect(url_for('experimento_dispositivos', experimento_id=experimento_id))
+            
+    else:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
+        experimento = cur.fetchone()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM api.dispositivo WHERE id = %s", (dispositivo_id,))
+        dispositivo = cur.fetchone()
+        return render_template('dispositivo-coleta-inserir.html', experimento_id=experimento_id, dispositivo=dispositivo,experimento=experimento, user=current_user)
+
+
+@app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/<int:coleta_id>/editar', methods=['GET', 'POST'])
+@login_required
+def coleta_editar(experimento_id, dispositivo_id, coleta_id):
+    if request.method == 'GET':
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM api.coleta WHERE id = %s", (coleta_id,))
+        coleta = cur.fetchone()
+        print(coleta)
+        if coleta:
+            coleta_json = {
+                'id': coleta_id,
+                'nome': coleta[1],
+                'atributos': []
+            }
+            if coleta[3]:  # Verifica se o campo de colunas não está vazio
+                string=coleta[3][0]
+                lista = json.loads(string)  # Converte a string JSON em objeto Python
+                for item in lista:
+                    coleta_json['atributos'].append(item)
+
+            return render_template('dispositivo-coleta-editar.html', coleta=coleta_json, experimento_id=experimento_id, dispositivo_id=dispositivo_id, user=current_user)
+        else:
+            # Lidar com o caso em que o dispositivo não foi encontrado no banco de dados
+            return "Dispositivo não encontrado."
+
+    elif request.method == 'POST':
+        nome = request.form['nome']
+        colunas = request.form.getlist('coluna[]')
+
+        colunas_detalhes = []
+        for i in range(0, len(colunas), 4):
+            coluna = {
+                'nome': colunas[i],
+                'descricao': colunas[i+1],
+                'tipo': colunas[i+2],
+                'unidade': colunas[i+3]
+            }
+            colunas_detalhes.append(coluna)
+        colunas_json = json.dumps(colunas_detalhes)
+        ativo = 'false'
+
+        
+        cur = conn.cursor()
+        cur.execute("UPDATE api.coleta SET nome=%s, atributos=%s WHERE id=%s", (nome, [colunas_json], coleta_id))
+        conn.commit()
+        return redirect(url_for('experimento_dispositivo_coleta', experimento_id=experimento_id,dispositivo_id=dispositivo_id, user=current_user))
+
+
+
+@app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/<int:coleta_id>/dados', methods=['GET'])
+@login_required
+def coleta_dados(experimento_id, dispositivo_id, coleta_id):
     cur = conn.cursor()
-    cur.execute("DELETE FROM api.coleta WHERE dispositivo_id = %s", (dispositivo_id,))
+    cur.execute("SELECT * FROM api.coleta WHERE id = %s", (coleta_id,))
+    coleta = cur.fetchone()
+    if coleta:
+        coleta_json = {
+            'id': coleta_id,
+            'nome': coleta[1],
+            'status': coleta[4],
+            'data_inicio': coleta[5],
+            'data_fechamento': coleta[6],
+            'atributos': []
+        }
+        if coleta[3]:  
+            string=coleta[3][0]
+            lista = json.loads(string)  
+            for item in lista:
+                coleta_json['atributos'].append(item)
+
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM api.dados_coletados WHERE coleta_id = %s", (coleta_id,))
+        dados = cur.fetchall()
+        
+        #varia = 1
+        #for atributo in coleta_json["atributos"]:
+        #    experimento_dispositivo_grafico(dispositivo_id, varia, atributo)
+        #    varia = varia+1
+            
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
+        experimento = cur.fetchone()
+        
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM api.dispositivo WHERE id = %s", (dispositivo_id,))
+        dispositivo = cur.fetchone()
+        
+        return render_template('dispositivo-coleta-dados.html', experimento_id=experimento_id,dispositivo=dispositivo, coleta=coleta_json, dispositivo_id=dispositivo_id, dados=dados,experimento=experimento, user=current_user)
+
+@app.route('/abrir-coleta/<int:experimento_id>/<int:dispositivo_id>/<int:coleta_id>', methods=['GET'])
+@login_required
+def abrir_coleta(experimento_id, dispositivo_id, coleta_id):
+    cur = conn.cursor()
+    
+    cur.execute("UPDATE api.coleta SET status = False, data_fechamento = current_timestamp WHERE dispositivo_id = %s;", (dispositivo_id,))
+    conn.commit()
+    
+    cur.execute("UPDATE api.coleta SET status = True, data_fechamento = null WHERE id = %s;", (coleta_id,))
+    conn.commit()
+
+    return redirect(url_for('experimento_dispositivo_coleta', experimento_id=experimento_id, dispositivo_id=dispositivo_id,user=current_user))
+
+@app.route('/fechar-coleta/<int:experimento_id>/<int:dispositivo_id>/<int:coleta_id>', methods=['GET'])
+@login_required
+def fechar_coleta(experimento_id, dispositivo_id, coleta_id):
+    cur = conn.cursor()
+    
+    cur.execute("UPDATE api.coleta SET status = False, data_fechamento = current_timestamp WHERE id = %s;", (coleta_id,))
+    conn.commit()
+
+    return redirect(url_for('experimento_dispositivo_coleta', experimento_id=experimento_id, dispositivo_id=dispositivo_id,user=current_user))
+
+@app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/<int:coleta_id>/deletar')
+@login_required
+def coleta_deletar(experimento_id, dispositivo_id, coleta_id):
+    cur = conn.cursor()
+    cur.execute("DELETE FROM api.coleta WHERE id = %s", (coleta_id,))
     conn.commit()
 
     return redirect(url_for('experimento_dispositivo_coleta', experimento_id=experimento_id, dispositivo_id=dispositivo_id,user=current_user))
@@ -860,12 +971,17 @@ def experimento_dispositivo_grafico(dispositivo_id, coluna_id, coluna):
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas', methods=['GET'])
 @login_required
 def etapas_experimento(experimento_id):
+    permissao_usuario = 'nenhuma'
+    for permissao in current_user.permissoes:
+        if permissao[0] ==  experimento_id:
+            permissao_usuario = permissao
+    
     cur = conn.cursor()
     cur.execute("SELECT * FROM api.etapa WHERE experimento_id = %s ORDER BY ordem", (experimento_id,))
     etapas = cur.fetchall()
     cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
     experimento = cur.fetchone()
-    return render_template('etapas-detalhes.html', experimento_id=experimento_id, experimento=experimento,etapas=etapas, user=current_user)
+    return render_template('etapas-detalhes.html', experimento_id=experimento_id, experimento=experimento,etapas=etapas,permissao=permissao_usuario, user=current_user)
 
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/inserir', methods=['GET','POST'])
 @login_required

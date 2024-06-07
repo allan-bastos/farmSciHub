@@ -34,6 +34,10 @@ def insertPayloadPostgres(payload_data):
     )
         cursor = conn.cursor()
 
+        comando_coleta = """
+            SELECT id FROM api.coleta WHERE dispositivo_id = %s AND status = True;
+        """
+        
         comando_token = """
             SELECT token FROM api.dispositivo WHERE id = %s;
         """
@@ -49,17 +53,25 @@ def insertPayloadPostgres(payload_data):
                 cursor.execute(comando_status, (dispositivo_id,))
                 dispositivo_status = cursor.fetchone()[0]
                 if dispositivo_status == True:
-                    fields = ', '.join([f'a{i+1}' for i in range((len(payload_data)-1))])
-                    values = ', '.join(['%s'] * (len(payload_data)-1))
+                    cursor.execute(comando_coleta, (dispositivo_id,))
+                    coleta = cursor.fetchone()
+                    if coleta:
+                        coleta_id = coleta[0]
+                        fields = ', '.join([f'a{i+1}' for i in range((len(payload_data)-1))])
+                        values = ', '.join(['%s'] * (len(payload_data)-1))
 
-                    comando_inserir = f"""
-                        INSERT INTO api.coleta (dispositivo_id, {fields})
-                        VALUES (%s, {values});
-                    """
-                    cursor.execute(comando_inserir, payload_data)
-                    conn.commit()
-                    print("Dados inseridos com sucesso no banco de dados!")
-                    client.publish(f"valores/{dispositivo_id}", payload=f"2 + {payload_data[1]}", qos=1)
+                        comando_inserir = f"""
+                            INSERT INTO api.dados_coletados (coleta_id, {fields})
+                            VALUES (%s, {values});
+                        """
+                        payload_data[0] = coleta_id
+                        cursor.execute(comando_inserir, (payload_data))
+                        conn.commit()
+                        print("Dados inseridos com sucesso no banco de dados!")
+                        client.publish(f"valores/{dispositivo_id}", payload=f"2 + {payload_data[1]}", qos=1)
+                    else:
+                        client.publish(f"valores/{dispositivo_id}", payload=f"7 + {payload_data[1]}", qos=1)
+                        print("Nenhuma coleta aberta nesse dispostivo. Dados não inseridos.")
                 else:
                     client.publish(f"valores/{dispositivo_id}", payload=f"6 + {payload_data[1]}", qos=1)
                     print("Dispositivo desabilitado. Dados não inseridos.")
