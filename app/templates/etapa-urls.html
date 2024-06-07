@@ -4,7 +4,7 @@
         <a href="/detalhes-experimento/{{ experimento_id }}/etapas" class="btn-voltar"><i class="fa fa-fw fa-arrow-left"></i>Voltar</a> <br>
         <h1>URLs da Etapa: {{etapa[1]}}</h1>
 
-
+        {% if permissao[1] != 'leitura' and permissao[4][1] or experimento[6] == user.id %}
         <div class="card mb-3 novo-anexo">
             <div class="card-body">
                 <h2 class="card-title">Enviar Nova URL:</h2>
@@ -25,6 +25,7 @@
                 </form>
             </div>
         </div>
+        {% endif %}
 
         {% if urls %}
         <div class="card mb-3">
@@ -34,8 +35,11 @@
                     {% for url in urls %}
                     <li class="list-group-item">
                         <b>URL:</b><a href="{{ url[3] }}">  {{ url[2] }} </a> <br>
-                        <b>Descrição:</b> {{ url[5] }} <br>
+                        <b>Descrição:</b> {{ url[4] }} <br>
+                        <b>Data Upload:</b> {{ url[5].strftime("%d/%m/%Y") }} <br>
+                        {% if permissao[1] == 'remocao' and permissao[4][1] or experimento[6] == user.id %}
                         <a href="#" onclick="confirmarExclusao('{{ url_for('deletar_url_etapa', etapa_id=etapa_id, url_id=url[0], experimento_id=experimento_id) }}')" class="btn btn-danger ml-2 mt-2">Deletar</a>
+                        {% endif %}
                     </li>
                     {% endfor %}
                 </ul>

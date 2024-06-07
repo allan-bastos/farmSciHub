@@ -565,12 +565,16 @@ def experimento_anexos(experimento_id):
                 return redirect(url_for('experimento_anexos', experimento_id=experimento_id, user=current_user))
             
     else:
+        permissao_usuario = 'nenhuma'
+        for permissao in current_user.permissoes:
+            if permissao[0] ==  experimento_id:
+                permissao_usuario = permissao
         cur = conn.cursor()
         cur.execute("SELECT * FROM api.anexos_experimento WHERE experimento_id = %s", (experimento_id,))
         anexos = cur.fetchall()
         cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
         experimento = cur.fetchone()
-        return render_template('experimento-anexos.html', experimento_id=experimento_id, experimento=experimento,anexos=anexos, user=current_user)
+        return render_template('experimento-anexos.html', experimento_id=experimento_id, permissao=permissao_usuario,experimento=experimento,anexos=anexos, user=current_user)
 
 
 @app.route('/detalhes-experimento/<int:experimento_id>/anexos/<int:anexo_id>/download')
@@ -619,12 +623,16 @@ def experimento_url(experimento_id):
     
         return redirect(url_for('experimento_url', experimento_id=experimento_id, user=current_user))
     else:
+        permissao_usuario = 'nenhuma'
+        for permissao in current_user.permissoes:
+            if permissao[0] ==  experimento_id:
+                permissao_usuario = permissao
         cur = conn.cursor()
         cur.execute("SELECT * FROM api.urls_experimento WHERE experimento_id = %s", (experimento_id,))
         urls = cur.fetchall()
         cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
         experimento = cur.fetchone()
-        return render_template('experimento-urls.html', experimento_id=experimento_id, experimento=experimento, urls=urls, user=current_user)
+        return render_template('experimento-urls.html', experimento_id=experimento_id, permissao=permissao_usuario,experimento=experimento, urls=urls, user=current_user)
 
 @app.route('/detalhes-experimento/<int:experimento_id>/url/<int:url_id>/deletar')
 @login_required
@@ -1045,12 +1053,19 @@ def etapa_anexos(experimento_id, etapa_id):
                 return redirect(url_for('etapa_anexos', experimento_id=experimento_id, etapa_id=etapa_id, user=current_user))
             
     else:
+        permissao_usuario = 'nenhuma'
+        for permissao in current_user.permissoes:
+            if permissao[0] ==  experimento_id:
+                permissao_usuario = permissao
         cur = conn.cursor()
         cur.execute("SELECT * FROM api.anexos_etapa WHERE etapa_id = %s", (etapa_id,))
         anexos = cur.fetchall()
         cur.execute("SELECT * FROM api.etapa WHERE id = %s", (etapa_id,))
         etapa = cur.fetchone()
-        return render_template('etapa-anexos.html', experimento_id=experimento_id, etapa_id=etapa_id, etapa=etapa,anexos=anexos, user=current_user)
+        
+        cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
+        experimento = cur.fetchone()
+        return render_template('etapa-anexos.html', experimento_id=experimento_id, permissao=permissao_usuario, etapa_id=etapa_id, experimento=experimento,etapa=etapa,anexos=anexos, user=current_user)
             
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/<int:etapa_id>/editar', methods=['GET', 'POST'])
 @login_required
@@ -1131,13 +1146,20 @@ def etapa_url(experimento_id, etapa_id):
         
         return redirect(url_for('etapa_url', experimento_id=experimento_id, etapa_id=etapa_id, user=current_user))
     else:
+        permissao_usuario = 'nenhuma'
+        for permissao in current_user.permissoes:
+            if permissao[0] ==  experimento_id:
+                permissao_usuario = permissao
         cur = conn.cursor()
         cur.execute("SELECT * FROM api.urls_etapa WHERE etapa_id = %s", (etapa_id,))
         urls = cur.fetchall()
         print(urls)
         cur.execute("SELECT * FROM api.etapa WHERE id = %s", (etapa_id,))
         etapa = cur.fetchone()
-        return render_template('etapa-urls.html', experimento_id=experimento_id, etapa_id=etapa_id, etapa=etapa, urls=urls, user=current_user)
+        
+        cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
+        experimento = cur.fetchone()
+        return render_template('etapa-urls.html', experimento_id=experimento_id, permissao=permissao_usuario,etapa_id=etapa_id, experimento=experimento,etapa=etapa, urls=urls, user=current_user)
 
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/<int:etapa_id>/url/<int:url_id>/deletar')
 @login_required
