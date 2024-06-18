@@ -33,7 +33,7 @@
                         <b>Nome do arquivo:</b>  {{ anexo[2] }} <br>  
                         <b>Descrição:</b> {{ anexo[5] }} <br>
                         <b>Data Upload:</b> {{ anexo[4].strftime("%d/%m/%Y") }} <br>
-                        <a href="{{ url_for('download_anexo', etapa_id=etapa_id, anexo_id=anexo[0]) }}" class="btn btn-info ml-2 mt-2">Visualizar</a>
+                        <a href="{{ url_for('download_anexo', experimento_id = experimento_id, etapa_id=etapa_id, anexo_id=anexo[0]) }}" class="btn btn-info ml-2 mt-2">Visualizar</a>
                         {% if permissao[1] == 'remocao' and permissao[4][0] or experimento[6] == user.id %}
                         <a href="#" onclick="confirmarExclusao('{{ url_for('deletar_anexos_etapa', etapa_id=etapa_id, anexo_id=anexo[0], experimento_id=experimento_id) }}')" class="btn btn-danger ml-2 mt-2">Deletar</a>
                         {% endif %}

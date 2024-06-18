@@ -16,7 +16,7 @@
                 <a class="btn btn-primary inserir-dispositivo"
                     href="{{ url_for('coleta_inserir', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}"><i
                         class="fa fa-fw fa-plus"></i>Inserir</a>
-    
+
             </div>
             {% endif %}
         </div>
@@ -41,17 +41,33 @@
                 <a href="#"
                     onclick="confirmarExclusao('{{ url_for('coleta_deletar', experimento_id=experimento_id, dispositivo_id=dispositivo[0], coleta_id=coleta[0]) }}')"
                     class="btn btn-danger mx-2">Excluir <i class="fa fa-fw fa-trash"></i></a>
-                {% if coleta[4] %}
-                <a href="/fechar-coleta/{{ experimento[0] }}/{{ dispositivo[0] }}//{{ coleta[0] }}"
-                    class="btn btn-success mx-2">Aberta</a>
-                {% else %}
-                <a href="/abrir-coleta/{{ experimento[0] }}/{{ dispositivo[0] }}/{{ coleta[0] }}"
-                    class="btn btn-secondary mx-2">Fechada</a>
-                {% endif %}
+
                 {% endif %}
                 {% endif %}
                 <a href="{{ url_for('coleta_dados', experimento_id=experimento_id, dispositivo_id=dispositivo[0], coleta_id=coleta[0]) }}"
-                    class="btn btn-warning mx-2"> Visualizar dados <i class="fa fa-fw fa-folder"></i></a>
+                    class="btn btn-warning mx-2"> Dados <i class="fa fa-fw fa-table"></i></a>
+                <br>
+                <br>
+                {% if not permissao[5] == 'leitura'%}
+                {% if dispositivo[6] == user.id or user.id == experimento[6]%}
+                {% if coleta[4] %}
+                <form action="/fechar-coleta/{{ experimento[0] }}/{{ dispositivo[0] }}/{{ coleta[0] }}" method="GET">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" checked
+                            onchange="this.form.submit()">
+                        <label class="form-check-label" for="flexSwitchCheckDefault">Aberta</label>
+                    </div>
+                </form>
+                {% else %}
+                <form action="/abrir-coleta/{{ experimento[0] }}/{{ dispositivo[0] }}/{{ coleta[0] }}" method="GET">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" onchange="this.form.submit()">
+                        <label class="form-check-label" for="flexSwitchCheckDefault">Fechada</label>
+                    </div>
+                </form>
+                {% endif %}
+                {% endif %}
+                {% endif %}
             </div>
         </div>
         {% endfor %}

@@ -23,6 +23,8 @@
                 <p><b>Descrição:</b> {{ experimento[4] }}</p>
                 <p><b>Localização:</b> {{ experimento[5] }}</p>
                 <p><b>Cadastrado em:</b> {{ experimento[3].strftime("%d/%m/%Y") }}</p>
+                <p><b>Espaço ocupado por anexos:</b> {{ espaco_disco }}</p>
+                <p><b>Espaço ocupado no postgres:</b> {{ espaco_banco }}</p>
 
         </div>
         <div class="experiment-buttons">
@@ -33,25 +35,25 @@
                 {% endif %}
 
 
-                <a href="/detalhes-experimento/{{experimento[0]}}/anexos" class="btn btn-warning">Anexos <i
+                <a href="/detalhes-experimento/{{experimento[0]}}/anexos" class="btn btn-warning">Anexos ({{counts.anexos}}) <i
                                 class="fa fa-fw fa-folder"></i></a>
 
-                <a href="/detalhes-experimento/{{experimento[0]}}/url" class="btn btn-secondary">URLs <i
+                <a href="/detalhes-experimento/{{experimento[0]}}/url" class="btn btn-secondary">URLs ({{counts.urls}}) <i
                                 class="fa fa-fw fa-link"></i></a>
                 <!-- Iterar entre as permissoes -->
                 {% if not permissao[5] == 'nenhuma'%}
-                <a href="/detalhes-experimento/{{experimento[0]}}/dispositivo" class="btn btn-info">Dispositivos <i
+                <a href="/detalhes-experimento/{{experimento[0]}}/dispositivo" class="btn btn-info">Dispositivos ({{counts.dispositivos}}) <i
                                 class="fa fa-fw fa-microchip"></i></a>
                 {% endif %}
                 {% if not permissao[3] == 'nenhuma'%}
-                <a href="/detalhes-experimento/{{experimento[0]}}/etapas" class="btn btn-success">Etapas <i
+                <a href="/detalhes-experimento/{{experimento[0]}}/etapas" class="btn btn-success">Etapas ({{counts.etapas}}) <i
                                 class="fa fa-fw fa-list"></i></a>
                 {% endif %}
                 {% if user.id == experimento[6]%}
                 <a href="#" onclick="confirmarExclusao('/detalhes-experimento/{{experimento[0]}}/deletar')"
                         class="btn btn-danger">Excluir <i class="fa fa-fw fa-trash"></i></a>
 
-                <a href="/compartilhados_experimento/{{experimento[0]}}" class="btn btn-dark">Compartilhar <i
+                <a href="/compartilhados_experimento/{{experimento[0]}}" class="btn btn-dark">Compartilhar ({{counts.compartilhamentos}}) <i
                                 class="fa fa-fw fa-share"></i></a>
                 {% endif %}
         </div>

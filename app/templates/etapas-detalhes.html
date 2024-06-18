@@ -51,12 +51,12 @@
                                 class="btn btn-danger mx-2">Excluir <i class="fa fa-fw fa-trash"></i></a>
                             {% endif %}
                             <a href="{{ url_for('etapa_anexos', experimento_id=experimento_id ,etapa_id=etapa[0]) }}"
-                                class="btn btn-warning mx-2">Anexos <i class="fa fa-fw fa-folder"></i></a>
+                                class="btn btn-warning mx-2">Anexos ({{etapa[7]}}) <i class="fa fa-fw fa-folder"></i></a>
                             <a href="{{ url_for('etapa_url', experimento_id=experimento_id ,etapa_id=etapa[0]) }}"
-                                class="btn btn-secondary mx-2">URLs <i class="fa fa-fw fa-link"></i></a>
+                                class="btn btn-secondary mx-2">URLs ({{etapa[8]}}) <i class="fa fa-fw fa-link"></i></a>
                             {% if not permissao[5] == 'nenhuma'%}
                             <a href="/detalhes-experimento/{{experimento[0]}}/dispositivo"
-                                class="btn btn-info">Dispositivos <i class="fa fa-fw fa-microchip"></i></a>
+                                class="btn btn-info">Dispositivos ({{count_dispositivos}}) <i class="fa fa-fw fa-microchip"></i></a>
                             {% endif %}
                         </div>
                     </div>

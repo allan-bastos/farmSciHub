@@ -49,17 +49,32 @@
             <a href="#"
                 onclick="confirmarExclusao('{{ url_for('experimento_dispositivo_deletar', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}')"
                 class="btn btn-danger mx-2">Excluir <i class="fa fa-fw fa-trash"></i></a>
-            {% if dispositivo[2] %}
-            <a href="/desativar-dispositivo/{{ experimento[0] }}/{{ dispositivo[0] }}"
-                class="btn btn-success mx-2">Habilitado</a>
-            {% else %}
-            <a href="/ativar-dispositivo/{{ experimento[0] }}/{{ dispositivo[0] }}"
-                class="btn btn-secondary mx-2">Desabilitado</a>
-            {% endif %}
             {% endif %}
             {% endif %}
             <a href="{{ url_for('experimento_dispositivo_coleta', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}"
-                class="btn btn-warning mx-2">Coletas <i class="fa fa-fw fa-folder"></i></a>
+                class="btn btn-warning mx-2">Coletas <i class="fa fa-fw fa-table"></i></a>
+<br><br>
+            {% if not permissao[5] == 'leitura'%}
+            {% if dispositivo[6] == user.id or user.id == experimento[6]%}
+            {% if dispositivo[2] %}
+            <form action="/desativar-dispositivo/{{ experimento[0] }}/{{ dispositivo[0] }}" method="GET">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" checked
+                        onchange="this.form.submit()">
+                    <label class="form-check-label" for="flexSwitchCheckDefault">Habilitado</label>
+                </div>
+            </form>
+            {% else %}
+            <form action="/ativar-dispositivo/{{ experimento[0] }}/{{ dispositivo[0] }}" method="GET">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault"
+                        onchange="this.form.submit()">
+                    <label class="form-check-label" for="flexSwitchCheckDefault">Desabilitado</label>
+                </div>
+            </form>
+            {% endif %}
+            {% endif %}
+            {% endif %}
         </div>
     </div>
     {% endfor %}

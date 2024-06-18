@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file, abort
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 import psycopg2 #pip install psycopg2 
 import psycopg2.extras
@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta, date
 from threading import Thread
 import pandas as pd
+
+import shutil
 
 from jinja2 import Template
 
@@ -39,7 +41,10 @@ conn = psycopg2.connect(
 app = Flask(__name__)
 app.secret_key = 'chave_secreta'
 
-app.config['UPLOAD_FOLDER'] = 'app/static/uploads'
+
+UPLOAD_FOLDER = './app/static/uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER 
+
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -76,6 +81,13 @@ def load_user(user_id):
     else:
         return None
 
+def get_folder_size(path):
+  total_size = 0
+  for dirpath, _, filenames in os.walk(path):
+    for filename in filenames:
+      file_path = os.path.join(dirpath, filename)
+      total_size += os.path.getsize(file_path)
+  return total_size
 
 @app.route('/')
 def index():
@@ -222,7 +234,10 @@ def compartilhamento_experimento(experimento_id):
     cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
     experimento = cur.fetchone()
     
-    return render_template('experimento-compartilhado.html', usuarios=usuarios, experimento_id=experimento_id, experimento=experimento,user=current_user)
+    cur.execute("SELECT COUNT(*) FROM local.solicitacoes WHERE experimento_id = %s AND status='aguardando'", (experimento_id,))
+    count_solicitacoes = cur.fetchone()[0]
+    
+    return render_template('experimento-compartilhado.html', usuarios=usuarios, experimento_id=experimento_id, count_solicitacoes=count_solicitacoes,experimento=experimento,user=current_user)
 
 
 
@@ -453,14 +468,34 @@ def inserir_experimento():
         if outra_categoria:
             categoria = outra_categoria
         localizacao = request.form['localizacao']
-        cur = conn.cursor()
-        cur.execute("INSERT INTO api.experimento (titulo, descricao, categoria, localizacao, cadastrado_por) VALUES (%s, %s, %s, %s, %s)", (titulo, descricao, categoria, localizacao, current_user.id))
-        conn.commit()
-        print("Registro POST recebido")
-        print("titulo:", titulo)
-        print("categoria:", categoria)
-        flash('Registro bem sucedido! Faça login para continuar.', 'success')
-        return redirect(url_for('meus_experimentos', user=current_user))
+
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO api.experimento (titulo, descricao, categoria, localizacao, cadastrado_por) VALUES (%s, %s, %s, %s, %s) RETURNING id",
+                (titulo, descricao, categoria, localizacao, current_user.id)
+            )
+            experimento_id = cur.fetchone()[0]
+            conn.commit()
+        except Exception as e:
+            print('Erro ao criar experimento: ' + str(e), 'error')
+            return redirect(url_for('inserir_experimento', user=current_user))
+
+        if experimento_id:
+            uploads_dir = os.path.join(app.config['UPLOAD_FOLDER'], str(experimento_id))
+            if not os.path.exists(uploads_dir):
+                try:
+                    os.makedirs(uploads_dir)
+                except OSError as e:
+                    print('Erro ao criar pasta de uploads: ' + str(e), 'error')
+                    return redirect(url_for('inserir_experimento', user=current_user))
+            return redirect(url_for('meus_experimentos', user=current_user))
+        else:
+            print('Erro ao recuperar o ID do experimento', 'error')
+            return redirect(url_for('inserir_experimento', user=current_user))
+
+            
+
     
 @app.route('/detalhes-experimento/<int:experimento_id>/editar', methods=['GET', 'POST'])
 @login_required
@@ -489,23 +524,23 @@ def editar_experimento(experimento_id):
 @login_required
 def deletar_experimento(experimento_id):
     cur = conn.cursor()
-    
-    cur.execute("""UPDATE local.usuario
-    SET acessos = array_remove(acessos, %s);
+    cur.execute("""
+        UPDATE local.usuario
+        SET acessos = array_remove(acessos, %s);
     """, (experimento_id,))
     conn.commit()
     
-    
     cur.execute("DELETE FROM api.experimento WHERE id = %s", (experimento_id,))
     conn.commit()
-    
-    cur.execute("""    UPDATE local.usuario
-        SET acessos = array_remove(acessos, %s);
-        """, (experimento_id,))
-    conn.commit()
 
-    
+    uploads_dir = os.path.join(app.config['UPLOAD_FOLDER'], str(experimento_id))
+    if os.path.exists(uploads_dir):
+        try:
+            shutil.rmtree(uploads_dir)
+        except Exception as e:
+            flash('Erro ao deletar a pasta de uploads: ' + str(e), 'error')
     return redirect(url_for('meus_experimentos', user=current_user))
+
     
 @app.route('/experimento/<int:experimento_id>')
 @login_required
@@ -523,12 +558,58 @@ def detalhes_experimento(experimento_id):
         if permissao[0] ==  experimento_id:
             permissao_usuario = permissao
     
-    
     cur = conn.cursor()
     cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
     experimento = cur.fetchone()
+    
+    cur.execute("SELECT COUNT(*) FROM api.anexos_experimento WHERE experimento_id = %s", (experimento_id,))
+    count_anexos = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM api.urls_experimento WHERE experimento_id = %s", (experimento_id,))
+    count_urls = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM api.dispositivo WHERE experimento_id = %s", (experimento_id,))
+    count_dispositivos = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM api.etapa WHERE experimento_id = %s", (experimento_id,))
+    count_etapas = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(*) FROM local.solicitacoes WHERE experimento_id = %s AND status='aceita'", (experimento_id,))
+    count_compartilhamentos = cur.fetchone()[0]
+    
+    counts = {
+        "anexos": count_anexos,
+        "urls": count_urls,
+        "dispositivos": count_dispositivos,
+        "etapas": count_etapas,
+        "compartilhamentos": count_compartilhamentos
+    }
+    
+    folder_path = f"./app/static/uploads/{experimento_id}/"
+    folder_size = get_folder_size(folder_path)
+    espaco_disco = folder_size / (1024 * 1024)
+    espaco_disco = f"{espaco_disco:.2f} MB"
+    
+    
+    #-- Para obter tamanhos individuais das tabelas relacionadas a um experimento
+    # SELECT * FROM get_table_sizes(experimento_id);
+
+    #-- Para obter o tamanho total de todas as tabelas relacionadas a um experimento
+    # SELECT get_total_size_for_experiment(experimento_id);
+    
+    #----------------------------------------------------------------------------------
+    
+    #-- Para obter tamanhos individuais das tuplas relacionadas a um experimento
+    # SELECT * FROM get_table_sizes_tuple(experimento_id);
+    
+    #-- Para obter o tamanho total de todas as tuplas relacionadas a um experimento
+    # SELECT get_total_size_tuple(57);
+
+    cur.execute("SELECT get_total_size_tuple(%s);", (experimento_id,))
+    espaco_banco = cur.fetchone()[0]
+    
     print(experimento)
-    return render_template('experimento-detalhes.html', experimento = experimento, permissao = permissao_usuario ,user=current_user)
+    return render_template('experimento-detalhes.html', experimento = experimento,espaco_banco=espaco_banco, espaco_disco=espaco_disco, permissao = permissao_usuario, counts=counts, user=current_user)
 
 @app.route('/meus-experimentos')
 @login_required
@@ -556,7 +637,7 @@ def experimento_anexos(experimento_id):
             descricao = request.form['descricao']
             if arquivo and allowed_file(arquivo.filename):
                 nome_arquivo = secure_filename(arquivo.filename)
-                caminho_arquivo = os.path.join(app.config['UPLOAD_FOLDER'], nome_arquivo)
+                caminho_arquivo = os.path.join(app.config['UPLOAD_FOLDER']+"/"+str(experimento_id), nome_arquivo)
                 arquivo.save(caminho_arquivo)
                 
                 cur = conn.cursor()
@@ -578,36 +659,55 @@ def experimento_anexos(experimento_id):
         return render_template('experimento-anexos.html', experimento_id=experimento_id, permissao=permissao_usuario,experimento=experimento,anexos=anexos, user=current_user)
 
 
-@app.route('/detalhes-experimento/<int:experimento_id>/anexos/<int:anexo_id>/download')
+
+
+@app.route('/detalhes-experimento/<int:experimento_id>/anexos/<int:anexo_id>/visualizar')
 @login_required
 def download_anexos_experimento(experimento_id, anexo_id):
     cur = conn.cursor()
-    cur.execute("SELECT caminho_do_arquivo FROM api.anexos_experimento WHERE id = %s", (anexo_id,))
+    cur.execute("SELECT nome_do_arquivo FROM api.anexos_experimento WHERE id = %s", (anexo_id,))
     resultado = cur.fetchone()
-    caminho_do_arquivo = resultado[0] if resultado else None
+    nome_do_arquivo = resultado[0] if resultado else None
 
-    if caminho_do_arquivo:
-        return send_from_directory(app.config['UPLOAD_FOLDER'], os.path.basename(caminho_do_arquivo)    )
+    if nome_do_arquivo:
+        directory = os.path.join(app.config['UPLOAD_FOLDER'], str(experimento_id))
+        caminho_completo_arquivo = os.path.join(directory, nome_do_arquivo)
+        
+        if os.path.exists(caminho_completo_arquivo):
+            try:
+                return send_file(f"static/uploads/{experimento_id}/{nome_do_arquivo}")
+            except Exception as e:
+                print(f"Erro ao enviar o arquivo: {str(e)}")
+                abort(500)
+        else:
+            print(f'Arquivo não encontrado no caminho: {caminho_completo_arquivo}')
+            abort(404)
     else:
-        return 'Arquivo não encontrado', 404
+        print('Arquivo não encontrado no banco de dados')
+        abort(404)
 
 @app.route('/detalhes-experimento/<int:experimento_id>/anexos/<int:anexo_id>/deletar')
 @login_required
 def deletar_anexos_experimento(experimento_id, anexo_id):
     cur = conn.cursor()
-    cur.execute("SELECT caminho_do_arquivo FROM api.anexos_experimento WHERE id = %s", (anexo_id,))
+    cur.execute("SELECT nome_do_arquivo FROM api.anexos_experimento WHERE id = %s", (anexo_id,))
     resultado = cur.fetchone()
-
-    cur.execute("DELETE FROM api.anexos_experimento WHERE id = %s", (anexo_id,))
-    conn.commit()
+    nome_do_arquivo = resultado[0] if resultado else None
     
-    if resultado:
-        caminho_do_arquivo = resultado[0]
-        if os.path.exists(caminho_do_arquivo):
-            os.remove(caminho_do_arquivo)
+    directory = os.path.join(app.config['UPLOAD_FOLDER'], str(experimento_id))
+    caminho_completo_arquivo = os.path.join(directory, nome_do_arquivo)
 
+    if os.path.exists(caminho_completo_arquivo):
+        try:
+            os.remove(caminho_completo_arquivo)
+            cur = conn.cursor()
+            cur.execute("DELETE FROM api.anexos_experimento WHERE nome_do_arquivo = %s AND experimento_id = %s", (nome_do_arquivo, experimento_id))
+            conn.commit()
 
-        return redirect(url_for('experimento_anexos', experimento_id=experimento_id, user=current_user))
+            return redirect(url_for('experimento_anexos', experimento_id=experimento_id))
+        except OSError as e:
+            print(f"Erro ao remover arquivo {caminho_completo_arquivo}: {e}")
+            return 'Erro ao deletar o arquivo', 500
     else:
         return 'Arquivo não encontrado', 404
 
@@ -986,11 +1086,33 @@ def etapas_experimento(experimento_id):
             permissao_usuario = permissao
     
     cur = conn.cursor()
-    cur.execute("SELECT * FROM api.etapa WHERE experimento_id = %s ORDER BY ordem", (experimento_id,))
-    etapas = cur.fetchall()
+    
     cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
     experimento = cur.fetchone()
-    return render_template('etapas-detalhes.html', experimento_id=experimento_id, experimento=experimento,etapas=etapas,permissao=permissao_usuario, user=current_user)
+    
+    cur.execute("SELECT * FROM api.etapa WHERE experimento_id = %s ORDER BY ordem", (experimento_id,))
+    etapas = cur.fetchall()
+    
+    
+    list_etapas = []
+    for etapa in etapas:
+        etapa_id = etapa[0]
+
+        cur.execute("SELECT COUNT(*) FROM api.anexos_etapa WHERE etapa_id = %s", (etapa_id,))
+        count_anexos_etapa = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM api.urls_etapa WHERE etapa_id = %s", (etapa_id,))
+        count_urls_etapa = cur.fetchone()[0]
+        
+        etapa_list = list(etapa)
+        etapa_list.append(count_anexos_etapa)
+        etapa_list.append(count_urls_etapa)
+        list_etapas.append(etapa_list)
+
+    cur.execute("SELECT COUNT(*) FROM api.dispositivo WHERE experimento_id = %s", (experimento_id,))
+    count_dispositivos = cur.fetchone()[0]
+    
+    return render_template('etapas-detalhes.html', experimento_id=experimento_id, experimento=experimento,etapas=list_etapas, count_dispositivos=count_dispositivos,permissao=permissao_usuario, user=current_user)
 
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/inserir', methods=['GET','POST'])
 @login_required
@@ -1002,9 +1124,16 @@ def inserir_etapa(experimento_id):
         experimento_id = experimento_id
         
         cur = conn.cursor()
-        cur.execute("INSERT INTO api.etapa (nome, descricao, status, experimento_id) VALUES (%s, %s, %s, %s)", (nome, descricao, status, experimento_id))
+        cur.execute("INSERT INTO api.etapa (nome, descricao, status, experimento_id) VALUES (%s, %s, %s, %s) RETURNING id", (nome, descricao, status, experimento_id))
+        etapa_id = cur.fetchone()[0]
         conn.commit()
-        flash('Etapa inserida com sucesso!', 'success')
+        if etapa_id:
+            uploads_dir = os.path.join(app.config['UPLOAD_FOLDER'], str(experimento_id)+"/"+str(etapa_id))
+            if not os.path.exists(uploads_dir):
+                try:
+                    os.makedirs(uploads_dir)
+                except OSError as e:
+                    print('Erro ao criar pasta de uploads: ' + str(e), 'error')
         return redirect(url_for('etapas_experimento', experimento_id=experimento_id, user=current_user))
     else:
         return render_template('etapa-inserir.html', experimento_id=experimento_id, user=current_user)
@@ -1015,7 +1144,7 @@ def ordem_etapa(experimento_id):
     cur = conn.cursor()
     cur.execute("SELECT * FROM api.etapa WHERE experimento_id = %s ORDER BY ordem;", (experimento_id,))
     etapas = cur.fetchall()
-    return render_template('etapas-ordem.html', etapas=etapas, user=current_user)
+    return render_template('etapas-ordem.html', etapas=etapas, experimento_id=experimento_id,user=current_user)
 
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/atualizar_ordem', methods=['POST'])
 @login_required
@@ -1044,7 +1173,7 @@ def etapa_anexos(experimento_id, etapa_id):
             descricao = request.form['descricao']
             if arquivo and allowed_file(arquivo.filename):
                 nome_arquivo = secure_filename(arquivo.filename)
-                caminho_arquivo = os.path.join(app.config['UPLOAD_FOLDER'], nome_arquivo)
+                caminho_arquivo = os.path.join(app.config['UPLOAD_FOLDER']+"/"+str(experimento_id)+"/"+str(etapa_id), nome_arquivo)
                 arquivo.save(caminho_arquivo)
                 
                 cur = conn.cursor()
@@ -1094,42 +1223,66 @@ def editar_etapa(experimento_id, etapa_id):
 def deletar_etapa(experimento_id, etapa_id):
     cur = conn.cursor()
     cur.execute("DELETE FROM api.etapa WHERE id = %s", (etapa_id,))
+    
+    uploads_dir = os.path.join(app.config['UPLOAD_FOLDER'], str(experimento_id)+"/"+str(etapa_id))
+    if os.path.exists(uploads_dir):
+        try:
+            shutil.rmtree(uploads_dir)
+        except Exception as e:
+            flash('Erro ao deletar a pasta de uploads: ' + str(e), 'error')
     return redirect(url_for('etapas_experimento', experimento_id=experimento_id, user=current_user))
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/detalhes-experimento/etapas/<int:etapa_id>/anexos/<int:anexo_id>/download')
+@app.route('/detalhes-experimento/<int:experimento_id>/etapas/<int:etapa_id>/anexos/<int:anexo_id>/visualizar')
 @login_required
-def download_anexo(etapa_id, anexo_id):
+def download_anexo(experimento_id, etapa_id, anexo_id):
     cur = conn.cursor()
-    cur.execute("SELECT caminho_do_arquivo FROM api.anexos_etapa WHERE id = %s", (anexo_id,))
+    cur.execute("SELECT nome_do_arquivo FROM api.anexos_etapa WHERE id = %s", (anexo_id,))
     resultado = cur.fetchone()
-    caminho_do_arquivo = resultado[0] if resultado else None
+    nome_do_arquivo = resultado[0] if resultado else None
 
-    if caminho_do_arquivo:
-        return send_from_directory(app.config['UPLOAD_FOLDER'], os.path.basename(caminho_do_arquivo)    )
+    if nome_do_arquivo:
+        directory = os.path.join(app.config['UPLOAD_FOLDER'], str(experimento_id)+"/"+str(etapa_id))
+        caminho_completo_arquivo = os.path.join(directory, nome_do_arquivo)
+        
+        if os.path.exists(caminho_completo_arquivo):
+            try:
+                return send_file(f"static/uploads/{experimento_id}/{etapa_id}/{nome_do_arquivo}")
+            except Exception as e:
+                print(f"Erro ao enviar o arquivo: {str(e)}")
+                abort(500)
+        else:
+            print(f'Arquivo não encontrado no caminho: {caminho_completo_arquivo}')
+            abort(404)
     else:
-        return 'Arquivo não encontrado', 404
+        print('Arquivo não encontrado no banco de dados')
+        abort(404)
 
 
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/<int:etapa_id>/anexos/<int:anexo_id>/deletar')
 @login_required
 def deletar_anexos_etapa(experimento_id,etapa_id, anexo_id):
     cur = conn.cursor()
-    cur.execute("SELECT caminho_do_arquivo FROM api.anexos_etapa WHERE id = %s", (anexo_id,))
+    cur.execute("SELECT nome_do_arquivo FROM api.anexos_etapa WHERE id = %s", (anexo_id,))
     resultado = cur.fetchone()
-
-    cur.execute("DELETE FROM api.anexos_etapa WHERE id = %s", (anexo_id,))
-    conn.commit()
+    nome_do_arquivo = resultado[0] if resultado else None
     
-    if resultado:
-        caminho_do_arquivo = resultado[0]
-        if os.path.exists(caminho_do_arquivo):
-            os.remove(caminho_do_arquivo)
+    directory = os.path.join(app.config['UPLOAD_FOLDER'], str(experimento_id)+"/"+str(etapa_id))
+    caminho_completo_arquivo = os.path.join(directory, nome_do_arquivo)
 
-
-        return redirect(url_for('etapa_anexos', etapa_id=etapa_id, experimento_id=experimento_id, user=current_user))
+    if os.path.exists(caminho_completo_arquivo):
+        try:
+            os.remove(caminho_completo_arquivo)
+            cur = conn.cursor()
+            cur.execute("DELETE FROM api.anexos_etapa WHERE id = %s", (anexo_id,))
+            conn.commit()
+    
+            return redirect(url_for('experimento_anexos', experimento_id=experimento_id))
+        except OSError as e:
+            print(f"Erro ao remover arquivo {caminho_completo_arquivo}: {e}")
+            return 'Erro ao deletar o arquivo', 500
     else:
         return 'Arquivo não encontrado', 404
 
