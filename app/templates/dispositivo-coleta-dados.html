@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% block body %}
 <div class="home-container coleta-container">
-  <a href="/detalhes-experimento/{{ experimento_id }}/dispositivo" class="btn-voltar"><i
+  <a href="{{url_for('experimento_dispositivo_coleta', experimento_id=experimento_id, dispositivo_id=dispositivo[0])}}" class="btn-voltar"><i
       class="fa fa-fw fa-arrow-left"></i>Voltar</a> <br>
   <div id="colunas">
     <div class="d-flex justify-content-between align-items-center">
