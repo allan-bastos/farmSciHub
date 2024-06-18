@@ -2,16 +2,16 @@
 FROM python:3.11
 
 # Configuração do diretório de trabalho
-WORKDIR /app
+WORKDIR /data_reader
 
 # Copie os arquivos necessários para o contêiner
-COPY . /app
+COPY . /data_reader
 
 # Instalação das dependências
 RUN pip install -r requirements.txt
 
 # Expõe a porta em que sua aplicação Flask está sendo executada
-EXPOSE 5000
+EXPOSE 8002
 
 # Comando para iniciar a aplicação Flask
-CMD ["python3", "data_reader/data_reader.py"]
+CMD ["python3", "data_reader.py"]

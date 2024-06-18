@@ -29,6 +29,7 @@ more-itertools==10.2.0
 nh3==0.2.17
 numpy==1.26.4
 packaging==24.0
+paho-mqtt==1.6.1
 pandas==2.2.1
 pillow==10.3.0
 pkginfo==1.10.0
