@@ -18,6 +18,14 @@
                     <label for="descricao">Descrição:</label>
                     <input type="text" class="form-control" id="descricao" name="descricao" required>
                 </div>
+                {% if experimento[6] == user.id %}
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="sensivel" name="sensivel" value="sensivel">
+                        Esse arquivo é sensível.
+                    </label>
+                </div>
+                {% endif %}
                 <button type="submit" class="btn btn-primary">Enviar</button>
             </form>
         </div>
@@ -30,18 +38,38 @@
             <h5 class="card-title">Anexos</h5>
             <ul class="list-group">
                 {% for anexo in anexos %}
-                <li class="list-group-item">
-                    <b>Nome do arquivo:</b> {{ anexo[2] }} <br> 
-                    <b>Descrição:</b> {{ anexo[4] }} <br> 
-                    <b>Data Upload:</b> {{ anexo[5].strftime("%d/%m/%Y") }} <br>
-                    <a href="{{ url_for('download_anexos_experimento', experimento_id=experimento_id, anexo_id=anexo[0]) }}"
-                        class="btn btn-info ml-2 mt-2">Visualizar</a>
-                    {% if permissao[1] == 'remocao' and permissao[2][0] or experimento[6] == user.id %}
-                    <a href="#"
-                        onclick="confirmarExclusao('{{ url_for('deletar_anexos_experimento', experimento_id=experimento_id, anexo_id=anexo[0]) }}')"
-                        class="btn btn-danger ml-2 mt-2">Deletar</a>
+                {% if anexo[6] %}
+                    {% if experimento[6] == user.id %}
+                        <li class="list-group-item">
+                            <b>Nome do arquivo:</b> {{ anexo[2] }} <br>
+                            <b>Descrição:</b> {{ anexo[4] }} <br>
+                            <b>Data Upload:</b> {{ anexo[5].strftime("%d/%m/%Y") }} <br>
+                            <b>Descrição:</b> {{ anexo[4] }} <br>
+                            <b>Arquivo sensível.</b><br>
+                            <a href="{{ url_for('download_anexos_experimento', experimento_id=experimento_id, anexo_id=anexo[0]) }}"
+                                class="btn btn-info ml-2 mt-2">Visualizar</a>
+                            {% if permissao[1] == 'remocao' and permissao[2][0] or experimento[6] == user.id %}
+                            <a href="#"
+                                onclick="confirmarExclusao('{{ url_for('deletar_anexos_experimento', experimento_id=experimento_id, anexo_id=anexo[0]) }}')"
+                                class="btn btn-danger ml-2 mt-2">Deletar</a>
+                            {% endif %}
+                        </li>
                     {% endif %}
-                </li>
+                {% else %}
+                    <li class="list-group-item">
+                        <b>Nome do arquivo:</b> {{ anexo[2] }} <br>
+                        <b>Descrição:</b> {{ anexo[4] }} <br>
+                        <b>Data Upload:</b> {{ anexo[5].strftime("%d/%m/%Y") }} <br>
+                        <b>Descrição:</b> {{ anexo[4] }} <br>
+                        <a href="{{ url_for('download_anexos_experimento', experimento_id=experimento_id, anexo_id=anexo[0]) }}"
+                            class="btn btn-info ml-2 mt-2">Visualizar</a>
+                        {% if permissao[1] == 'remocao' and permissao[2][0] or experimento[6] == user.id %}
+                            <a href="#"
+                            onclick="confirmarExclusao('{{ url_for('deletar_anexos_experimento', experimento_id=experimento_id, anexo_id=anexo[0]) }}')"
+                            class="btn btn-danger ml-2 mt-2">Deletar</a>
+                        {% endif %}
+                    </li>
+                {% endif %}
                 {% endfor %}
             </ul>
         </div>

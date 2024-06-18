@@ -634,13 +634,14 @@ def experimento_anexos(experimento_id):
         if 'file' in request.files:
             arquivo = request.files['file']
             descricao = request.form['descricao']
+            sensivel = 'sensivel' in request.form
             if arquivo and allowed_file(arquivo.filename):
                 nome_arquivo = secure_filename(arquivo.filename)
                 caminho_arquivo = os.path.join(app.config['UPLOAD_FOLDER']+"/"+str(experimento_id), nome_arquivo)
                 arquivo.save(caminho_arquivo)
                 
                 cur = conn.cursor()
-                cur.execute("INSERT INTO api.anexos_experimento (experimento_id, nome_do_arquivo, caminho_do_arquivo, descricao) VALUES (%s, %s, %s, %s)", (experimento_id, nome_arquivo, caminho_arquivo, descricao))
+                cur.execute("INSERT INTO api.anexos_experimento (experimento_id, nome_do_arquivo, caminho_do_arquivo, descricao, sensivel) VALUES (%s, %s, %s, %s, %s)", (experimento_id, nome_arquivo, caminho_arquivo, descricao, sensivel))
                 conn.commit()
                 
                 return redirect(url_for('experimento_anexos', experimento_id=experimento_id, user=current_user))
