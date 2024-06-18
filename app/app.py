@@ -17,19 +17,12 @@ import pandas as pd
 from jinja2 import Template
 
 # Configurações postgresql
-<<<<<<< HEAD
-DB_HOST = "localhost"
-#DB_HOST = "10.0.2.15"
+
+#DB_HOST = "localhost"
+DB_HOST = "10.0.2.15"
 DB_NAME = "farmscihub"
 DB_USER = "farmscihub_admin"
 DB_PASS = "pibiti.fsh.2010"
-=======
-#DB_HOST = "localhost"
-DB_HOST = "10.0.2.15"
-DB_NAME = "postgres"
-DB_USER = "postgres"
-DB_PASS = "mysecretpassword"
->>>>>>> 10b0e10 (.)
 DB_PORT = "5433"
 
 
@@ -46,7 +39,7 @@ conn = psycopg2.connect(
 app = Flask(__name__)
 app.secret_key = 'chave_secreta'
 
-app.config['UPLOAD_FOLDER'] = '/home/allan/pibiti/plataforma_gestao_agropecuaria/app/static/uploads'
+app.config['UPLOAD_FOLDER'] = 'app/static/uploads'
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -1179,10 +1172,6 @@ def deletar_url_etapa(experimento_id,etapa_id, url_id):
     return redirect(url_for('etapa_url', etapa_id=etapa_id, experimento_id=experimento_id, user=current_user))
 
 if __name__ == "__main__":
-<<<<<<< HEAD
-    #app.run(host='0.0.0.0', port=5001,threaded=True)
-    app.run(debug=True, threaded=True, port=5001)
-=======
     app.run(host='0.0.0.0', port=5002,threaded=True)
     #app.run(debug=True, threaded=True, port=5002)
->>>>>>> 10b0e10 (.)
+

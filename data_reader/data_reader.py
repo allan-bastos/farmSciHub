@@ -11,8 +11,8 @@ broker_address = '80fe29ce8268427c9a4a9aeb6cabf603.s2.eu.hivemq.cloud'
 broker_port = 8883
 
 # Configurações postgresql
-DB_HOST = "localhost"
-#DB_HOST = "10.0.2.15"
+#DB_HOST = "localhost"
+DB_HOST = "10.0.2.15"
 DB_NAME = "farmscihub"
 DB_USER = "farmscihub_admin"
 DB_PASS = "pibiti.fsh.2010"
