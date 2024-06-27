@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="home-container coleta-container">
+  <a href="{{url_for('experimento_dispositivos', experimento_id=experimento_id)}}" class="btn-voltar"><i
+      class="fa fa-fw fa-arrow-left"></i>Voltar</a> <br>
+  <div id="colunas">
+    <div class="d-flex justify-content-between align-items-center">
+
+      <h3 class="mb-3 ml-5"><b>Nome do dispsoitivo: </b></h3>
+
+      {% if dispositivo.criado_por == user.id or user.id == experimento[6]%}
+      <div class="d-flex justify-content-between align-items-right">
+        <a href="#"
+          onclick="confirmarExclusao('{{ url_for('dispositivo_dados_limpar', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}')"
+          class="btn btn-danger mr-5 mb-3">Limpar dados<i class="fa fa-fw fa-trash"></i></a>
+      </div>
+      {% endif %}
+
+    </div>
+    <div class="col-md-12">
+      <table id="example" class="table table-striped table-bordered" style="width:100%">
+        <thead>
+          <tr>
+            {% for i in range(20) %}
+            <th>Atrib. {{ loop.index }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for dado in dados %}
+          <tr>
+            {% for i in range(coleta.atributos|length) %}
+            <td>{{ dado[i+2] }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -20,8 +20,8 @@ from jinja2 import Template
 
 # Configurações postgresql
 
-#DB_HOST = "localhost"
-DB_HOST = "10.0.2.15"
+DB_HOST = "localhost"
+#DB_HOST = "10.0.2.15"
 DB_NAME = "farmscihub"
 DB_USER = "farmscihub_admin"
 DB_PASS = "pibiti.fsh.2010"
@@ -795,8 +795,33 @@ def experimento_dispositivos_inserir(experimento_id):
         ativo = 'false'
         
         cur = conn.cursor()
-        cur.execute("INSERT INTO api.dispositivo (experimento_id, nome, mac_address, descricao, cadastrado_por, ativo) VALUES (%s, %s, %s, %s, %s, %s)", (experimento_id, nome, mac_address, descricao, current_user.id, ativo))
+        cur.execute("INSERT INTO api.dispositivo (experimento_id, nome, mac_address, descricao, cadastrado_por, ativo) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id", (experimento_id, nome, mac_address, descricao, current_user.id, ativo))
         conn.commit()
+        
+        dispositivo_id = cur.fetchone()[0]
+        
+        cur.execute("UPDATE api.dispositivo SET tabela_dispositivo = 'api.dados_dispositivo_%s'", (dispositivo_id,))
+        conn.commit()
+        
+
+        fields = ', '.join([f'a{i+1} TEXT' for i in range(20)])
+
+        
+        comando_cria_tabela = f"CREATE TABLE api.dados_dispositivo_{dispositivo_id} (id SERIAL PRIMARY KEY, data_hora TIMESTAMP DEFAULT current_timestamp, {fields});"
+        cur.execute(comando_cria_tabela)
+        conn.commit()
+        
+        cur.execute("SELECT id FROM api.coleta WHERE dispositivo_id = %s", (dispositivo_id,))
+        coleta_id = cur.fetchone()[0]
+        
+        cur.execute("UPDATE api.coleta SET tabela_coleta = 'api.dados_coleta_%s'", (coleta_id,))
+        conn.commit()
+        
+        
+        comando_cria_tabela = f"CREATE TABLE api.dados_coleta_{coleta_id} (id SERIAL PRIMARY KEY, data_hora TIMESTAMP DEFAULT current_timestamp);"
+        cur.execute(comando_cria_tabela)
+        conn.commit()
+        
         
         return redirect(url_for('experimento_dispositivos', experimento_id=experimento_id))
             
@@ -828,6 +853,63 @@ def experimento_dispositivo_editar(experimento_id, dispositivo_id):
         conn.commit()
         return redirect(url_for('experimento_dispositivos', experimento_id=experimento_id, user=current_user))
 
+
+@app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/deletar')
+@login_required
+def experimento_dispositivo_deletar(experimento_id, dispositivo_id):
+    cur = conn.cursor()
+    
+    comando_deleta_tabela = f"DROP TABLE api.dados_dispositivo_{dispositivo_id};"
+    cur.execute(comando_deleta_tabela)
+    conn.commit()
+    
+    cur.execute("SELECT id FROM api.coleta WHERE dispositivo_id = %s", (dispositivo_id,))
+    coletas = cur.fetchall()
+    for coleta in coletas:
+        comando_deleta_tabela_coleta = f"DROP TABLE api.dados_coleta_{coleta[0]};"
+        print(comando_deleta_tabela_coleta)
+        cur.execute(comando_deleta_tabela_coleta)
+    
+    cur.execute("DELETE FROM api.dispositivo WHERE id = %s", (dispositivo_id,))
+    conn.commit()
+
+    return redirect(url_for('experimento_dispositivos', experimento_id=experimento_id, user=current_user))
+
+
+@app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/dados', methods=['GET'])
+@login_required
+def dispositivo_dados(experimento_id, dispositivo_id):
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM api.dispositivo WHERE id = %s", (dispositivo_id,))
+    dispositivo = cur.fetchone()
+
+    cur = conn.cursor()
+    tabela = dispositivo[9].replace("'", "")
+    cur.execute(f"SELECT * FROM {tabela};")
+    dados = cur.fetchall()
+        
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
+    experimento = cur.fetchone()
+    
+    
+    return render_template('dispositivo-dados.html', experimento_id=experimento_id,dispositivo=dispositivo, dispositivo_id=dispositivo_id, dados=dados,experimento=experimento, user=current_user)
+
+@app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/dados/limpar')
+@login_required
+def dispositivo_dados_limpar(experimento_id, dispositivo_id):
+    cur = conn.cursor()
+    
+    comando_limpa_tabela = f"DELETE FROM api.dados_dispositivo_{dispositivo_id};"
+    cur.execute(comando_limpa_tabela)
+    conn.commit()
+
+    return redirect(url_for('dispositivo_dados', experimento_id=experimento_id, dispositivo_id=dispositivo_id, user=current_user))
+
+
+####################################################    COLETAS    #########################################################
+############################################################################################################################
+
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/', methods=['GET'])
 @login_required
 def experimento_dispositivo_coleta(experimento_id, dispositivo_id):
@@ -849,19 +931,6 @@ def experimento_dispositivo_coleta(experimento_id, dispositivo_id):
     experimento = cur.fetchone()
     
     return render_template('dispositivo-coleta.html', experimento_id=experimento_id, dispositivo=dispositivo, permissao=permissao_usuario, dispositivo_id=dispositivo_id, coletas=coletas,experimento=experimento, user=current_user)
-
-
-@app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/deletar')
-@login_required
-def experimento_dispositivo_deletar(experimento_id, dispositivo_id):
-    cur = conn.cursor()
-    cur.execute("DELETE FROM api.dispositivo WHERE id = %s", (dispositivo_id,))
-    conn.commit()
-
-    return redirect(url_for('experimento_dispositivos', experimento_id=experimento_id, user=current_user))
-
-####################################################    COLETAS    #########################################################
-############################################################################################################################
 
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/inserir', methods=['GET', 'POST'])
@@ -888,10 +957,29 @@ def coleta_inserir(experimento_id, dispositivo_id):
         conn.commit()
         
         
-        cur.execute("INSERT INTO api.coleta (dispositivo_id, nome, atributos) VALUES (%s, %s, %s)", (dispositivo_id, nome, [atributos_json]))
+        cur.execute("INSERT INTO api.coleta (dispositivo_id, nome, atributos) VALUES (%s, %s, %s) RETURNING id", (dispositivo_id, nome, [atributos_json]))
         conn.commit()
         
-        return redirect(url_for('experimento_dispositivos', experimento_id=experimento_id))
+        coleta_id = cur.fetchone()[0]
+        
+        cur.execute("UPDATE api.coleta SET tabela_coleta = 'api.dados_coleta_%s'", (coleta_id,))
+        conn.commit()
+        
+        if len(atributos_detalhes) > 0:
+            fields = ', '.join([f'a{i+1} TEXT' for i in range((len(atributos_detalhes)))])
+        else:
+            fields = False
+        
+        if fields:
+            comando_cria_tabela = f"CREATE TABLE api.dados_coleta_{coleta_id} (id SERIAL PRIMARY KEY, data_hora TIMESTAMP DEFAULT current_timestamp, {fields});"
+        else:
+            comando_cria_tabela = f"CREATE TABLE api.dados_coleta_{coleta_id} (id SERIAL PRIMARY KEY, data_hora TIMESTAMP DEFAULT current_timestamp);"
+        print(comando_cria_tabela)
+        
+        cur.execute(comando_cria_tabela)
+        conn.commit()
+        
+        return redirect(url_for('experimento_dispositivo_coleta', experimento_id=experimento_id, dispositivo_id=dispositivo_id))
             
     else:
         cur = conn.cursor()
@@ -923,7 +1011,7 @@ def coleta_editar(experimento_id, dispositivo_id, coleta_id):
                 for item in lista:
                     coleta_json['atributos'].append(item)
 
-            return render_template('dispositivo-coleta-editar.html', coleta=coleta_json, experimento_id=experimento_id, dispositivo_id=dispositivo_id, user=current_user)
+            return render_template('dispositivo-coleta-editar.html', coleta=coleta_json, experimento_id=experimento_id, coleta_id=coleta_id, dispositivo_id=dispositivo_id, user=current_user)
         else:
             # Lidar com o caso em que o dispositivo não foi encontrado no banco de dados
             return "Dispositivo não encontrado."
@@ -936,9 +1024,9 @@ def coleta_editar(experimento_id, dispositivo_id, coleta_id):
         for i in range(0, len(colunas), 4):
             coluna = {
                 'nome': colunas[i],
-                'descricao': colunas[i+1],
-                'tipo': colunas[i+2],
-                'unidade': colunas[i+3]
+                'tipo': colunas[i+1],
+                'unidade': colunas[i+2],
+                'descricao': colunas[i+3]
             }
             colunas_detalhes.append(coluna)
         colunas_json = json.dumps(colunas_detalhes)
@@ -948,7 +1036,50 @@ def coleta_editar(experimento_id, dispositivo_id, coleta_id):
         cur = conn.cursor()
         cur.execute("UPDATE api.coleta SET nome=%s, atributos=%s WHERE id=%s", (nome, [colunas_json], coleta_id))
         conn.commit()
-        return redirect(url_for('experimento_dispositivo_coleta', experimento_id=experimento_id,dispositivo_id=dispositivo_id, user=current_user))
+        return redirect(url_for('coleta_editar', experimento_id=experimento_id,dispositivo_id=dispositivo_id, coleta_id=coleta_id, user=current_user))
+
+
+@app.route('/adicionar-coluna/<int:experimento_id>/<int:coleta_id>/<int:n_atributo>', methods=['POST'])
+@login_required
+def adicionar_atributo(experimento_id, coleta_id, n_atributo):
+    try:
+        cur = conn.cursor()
+
+        table_name = f'api.dados_coleta_{coleta_id}'
+        coluna_name = f'a{n_atributo}'
+
+        cur.execute(f"ALTER TABLE {table_name} ADD COLUMN {coluna_name} TEXT;")
+        #print(f"ALTER TABLE {table_name} ADD COLUMN {coluna_name} TEXT;")
+        conn.commit()
+
+        return jsonify({'message': f'Coluna {coluna_name} adicionada com sucesso'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+    
+@app.route('/remove-coluna/<int:experimento_id>/<int:coleta_id>/<int:n_atributo>//<int:total_atributos>', methods=['POST'])
+@login_required
+def remover_atributo(experimento_id, coleta_id, n_atributo, total_atributos):
+    try:
+        cur = conn.cursor()
+
+        table_name = f'api.dados_coleta_{coleta_id}'
+        coluna_name = f'a{n_atributo}'
+
+        if n_atributo==total_atributos:
+            cur.execute(f"ALTER TABLE {table_name} DROP COLUMN {coluna_name};")
+        elif n_atributo<total_atributos:
+            cur.execute(f"ALTER TABLE {table_name} DROP COLUMN {coluna_name};")
+            i = n_atributo
+            while i<total_atributos:
+                 cur.execute(f"ALTER TABLE {table_name} RENAME COLUMN a{i+1} TO a{i};")
+                 i=i+1
+        
+        conn.commit()
+
+        return jsonify({'message': f'Coluna {coluna_name} removida com sucesso'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 
@@ -965,7 +1096,8 @@ def coleta_dados(experimento_id, dispositivo_id, coleta_id):
             'status': coleta[4],
             'data_inicio': coleta[5],
             'data_fechamento': coleta[6],
-            'atributos': []
+            'tabela_dados': coleta[7],
+            'atributos': []    
         }
         if coleta[3]:  
             string=coleta[3][0]
@@ -974,7 +1106,8 @@ def coleta_dados(experimento_id, dispositivo_id, coleta_id):
                 coleta_json['atributos'].append(item)
 
         cur = conn.cursor()
-        cur.execute("SELECT * FROM api.dados_coletados WHERE coleta_id = %s", (coleta_id,))
+        tabela = coleta_json.get('tabela_dados').replace("'", "")
+        cur.execute(f"SELECT * FROM {tabela};")
         dados = cur.fetchall()
         
         #varia = 1
@@ -991,6 +1124,8 @@ def coleta_dados(experimento_id, dispositivo_id, coleta_id):
         dispositivo = cur.fetchone()
         
         return render_template('dispositivo-coleta-dados.html', experimento_id=experimento_id,dispositivo=dispositivo, coleta=coleta_json, dispositivo_id=dispositivo_id, dados=dados,experimento=experimento, user=current_user)
+
+
 
 @app.route('/abrir-coleta/<int:experimento_id>/<int:dispositivo_id>/<int:coleta_id>', methods=['GET'])
 @login_required
@@ -1019,11 +1154,30 @@ def fechar_coleta(experimento_id, dispositivo_id, coleta_id):
 @login_required
 def coleta_deletar(experimento_id, dispositivo_id, coleta_id):
     cur = conn.cursor()
+    
+    comando_deleta_tabela = f"DROP TABLE api.dados_coleta_{coleta_id};"
+    
+    cur.execute(comando_deleta_tabela)
+    conn.commit()
+    
     cur.execute("DELETE FROM api.coleta WHERE id = %s", (coleta_id,))
     conn.commit()
 
     return redirect(url_for('experimento_dispositivo_coleta', experimento_id=experimento_id, dispositivo_id=dispositivo_id,user=current_user))
 
+
+@app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/<int:coleta_id>/limpar')
+@login_required
+def coleta_limpar(experimento_id, dispositivo_id, coleta_id):
+    cur = conn.cursor()
+    
+    comando_limpar_tabela = f"DELETE FROM api.dados_coleta_{coleta_id};"
+    cur.execute(comando_limpar_tabela)
+    conn.commit()
+    
+    print(comando_limpar_tabela)
+
+    return redirect(url_for('coleta_dados', experimento_id=experimento_id, dispositivo_id=dispositivo_id, coleta_id=coleta_id, user=current_user))
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/grafico/<int:coluna_id>/<coluna>')
 def experimento_dispositivo_grafico(dispositivo_id, coluna_id, coluna):
@@ -1326,6 +1480,6 @@ def deletar_url_etapa(experimento_id,etapa_id, url_id):
     return redirect(url_for('etapa_url', etapa_id=etapa_id, experimento_id=experimento_id, user=current_user))
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5002,threaded=True)
-    #app.run(debug=True, threaded=True, port=5002)
+    #app.run(host='0.0.0.0', port=5002,threaded=True)
+    app.run(debug=True, threaded=True, port=5003)
 

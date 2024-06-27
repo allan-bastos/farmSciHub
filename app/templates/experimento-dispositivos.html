@@ -53,7 +53,9 @@
             {% endif %}
             <a href="{{ url_for('experimento_dispositivo_coleta', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}"
                 class="btn btn-warning mx-2">Coletas <i class="fa fa-fw fa-table"></i></a>
-<br><br>
+            <a href="{{ url_for('dispositivo_dados', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}"
+                class="btn btn-secondary mx-2">Dados perdidos <i class="fa fa-fw fa-recycle"></i></a>
+            <br><br>
             {% if not permissao[5] == 'leitura'%}
             {% if dispositivo[6] == user.id or user.id == experimento[6]%}
             {% if dispositivo[2] %}
