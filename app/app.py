@@ -814,7 +814,7 @@ def experimento_dispositivos_inserir(experimento_id):
         cur.execute("SELECT id FROM api.coleta WHERE dispositivo_id = %s", (dispositivo_id,))
         coleta_id = cur.fetchone()[0]
         
-        cur.execute("UPDATE api.coleta SET tabela_coleta = 'api.dados_coleta_%s'", (coleta_id,))
+        cur.execute("UPDATE api.coleta SET tabela_coleta = 'api.dados_coleta_%s' WHERE id=%s", (coleta_id, coleta_id))  
         conn.commit()
         
         
@@ -962,7 +962,7 @@ def coleta_inserir(experimento_id, dispositivo_id):
         
         coleta_id = cur.fetchone()[0]
         
-        cur.execute("UPDATE api.coleta SET tabela_coleta = 'api.dados_coleta_%s'", (coleta_id,))
+        cur.execute("UPDATE api.coleta SET tabela_coleta = 'api.dados_coleta_%s' WHERE id=%s", (coleta_id, coleta_id))  
         conn.commit()
         
         if len(atributos_detalhes) > 0:
@@ -1107,6 +1107,7 @@ def coleta_dados(experimento_id, dispositivo_id, coleta_id):
 
         cur = conn.cursor()
         tabela = coleta_json.get('tabela_dados').replace("'", "")
+        print(tabela)
         cur.execute(f"SELECT * FROM {tabela};")
         dados = cur.fetchall()
         

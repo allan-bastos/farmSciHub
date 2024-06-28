@@ -1,7 +1,7 @@
 import paho.mqtt.client as paho
 import psycopg2
 import time
-
+import json
 
 # Configurações paho
 client = paho.Client(client_id = 'data_reader', userdata = None, protocol = paho.MQTTv5)
@@ -11,8 +11,8 @@ broker_address = '80fe29ce8268427c9a4a9aeb6cabf603.s2.eu.hivemq.cloud'
 broker_port = 8883
 
 # Configurações postgresql
-#DB_HOST = "localhost"
-DB_HOST = "10.0.2.15"
+DB_HOST = "localhost"
+#DB_HOST = "10.0.2.15"
 DB_NAME = "farmscihub"
 DB_USER = "farmscihub_admin"
 DB_PASS = "pibiti.fsh.2010"
@@ -35,7 +35,7 @@ def insertPayloadPostgres(payload_data):
         cursor = conn.cursor()
 
         comando_coleta = """
-            SELECT id FROM api.coleta WHERE dispositivo_id = %s AND status = True;
+            SELECT id, atributos FROM api.coleta WHERE dispositivo_id = %s AND status = True;
         """
         
         comando_token = """
@@ -46,32 +46,61 @@ def insertPayloadPostgres(payload_data):
             SELECT ativo FROM api.dispositivo WHERE id = %s;
         """
         cursor.execute(comando_token, (dispositivo_id,))
-        existe = cursor.fetchone()
-        if existe:
-            dispositivo_token = existe[0]
+        token = cursor.fetchone()
+        if token:
+            dispositivo_token = token[0]
             if usuario_token == dispositivo_token:
                 cursor.execute(comando_status, (dispositivo_id,))
                 dispositivo_status = cursor.fetchone()[0]
                 if dispositivo_status == True:
                     cursor.execute(comando_coleta, (dispositivo_id,))
                     coleta = cursor.fetchone()
+                    payload_data.pop()
+                    payload_data.pop(0)
+                    fields = ', '.join([f'a{i+1}' for i in range(len(payload_data))])
+                    values = ', '.join(['%s'] * (len(payload_data)))
                     if coleta:
                         coleta_id = coleta[0]
-                        fields = ', '.join([f'a{i+1}' for i in range((len(payload_data)-1))])
-                        values = ', '.join(['%s'] * (len(payload_data)-1))
-
-                        comando_inserir = f"""
-                            INSERT INTO api.dados_coletados (coleta_id, {fields})
-                            VALUES (%s, {values});
-                        """
-                        payload_data[0] = coleta_id
-                        cursor.execute(comando_inserir, (payload_data))
-                        conn.commit()
-                        print("Dados inseridos com sucesso no banco de dados!")
-                        client.publish(f"valores/{dispositivo_id}", payload=f"2 + {payload_data[1]}", qos=1)
+                        atributos = []
+                        
+                        if coleta[1]:  
+                            string=coleta[1][0]
+                            lista = json.loads(string)  
+                            for item in lista:
+                                atributos.append(item)
+   
+                        if len(payload_data) == len(atributos):
+                            comando_inserir_coleta = f"""
+                            INSERT INTO api.dados_coleta_{coleta_id} ({fields})
+                            VALUES ({values});
+                            """
+                            cursor.execute(comando_inserir_coleta, (payload_data))
+                            conn.commit()
+                            #print(comando_inserir_coleta, (payload_data))
+                            client.publish(f"valores/{dispositivo_id}", payload=f"2 + {payload_data[0]}", qos=1) 
+                            print("Dados inseridos com sucesso no banco de dados!")
+                            
+                        else:
+                            comando_inserir_dispositivo = f"""
+                            INSERT INTO api.dados_dispositivo_{dispositivo_id} ({fields})
+                            VALUES ({values});
+                            """
+                            cursor.execute(comando_inserir_dispositivo, (payload_data))
+                            conn.commit()
+                            #print(comando_inserir_dispositivo, (payload_data))
+                            client.publish(f"valores/{dispositivo_id}", payload=f"8 + {payload_data[0]}", qos=1)  
+                            print("Quantidade de atributos não conferem. Dados inseridos na tabela de backup do dispositivo.")
                     else:
+                        
+                        comando_inserir_dispositivo = f"""
+                        INSERT INTO api.dados_dispositivo_{dispositivo_id} ({fields})
+                        VALUES ({values});
+                        """
+                        cursor.execute(comando_inserir_dispositivo, (payload_data))
+                        conn.commit()
+                        print(comando_inserir_dispositivo, (payload_data))
                         client.publish(f"valores/{dispositivo_id}", payload=f"7 + {payload_data[1]}", qos=1)
-                        print("Nenhuma coleta aberta nesse dispostivo. Dados não inseridos.")
+                        print("Nenhuma coleta aberta. Dados inseridos na tabela de backup do dispositivo.")
                 else:
                     client.publish(f"valores/{dispositivo_id}", payload=f"6 + {payload_data[1]}", qos=1)
                     print("Dispositivo desabilitado. Dados não inseridos.")

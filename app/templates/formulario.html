@@ -11,40 +11,45 @@
 
         <h1>Formulário de Requisição</h1>  
         <form action="#" method="post">
-            <div class="form-group">
-                <label for="nome" class="label-bold">Nome completo:</label>
-                <input type="text" id="nome" class="form-control" name="nome" required>
+            <div class="row">
+                <div class="form-group col">
+                    <label for="nome" class="label-bold">Nome completo:</label>
+                    <input type="text" id="nome" class="form-control" name="nome" required>
+                </div>
+                <div class="form-group col">
+                    <label for="vinculo" class="label-bold">Vínculo institucional:</label>
+                    <select id="vinculo" name="vinculo" class="form-control"
+                        onchange="habilitarOutro('vinculo', 'outro_vinculo')" required>
+                        <option value="Esalq/USP">Esalq/USP</option>
+                        <option value="IFSP campus Piracicaba">IFSP campus Piracicaba</option>
+                        <option value="UFSCar">UFSCar</option>
+                        <option value="outro">Outro</option>
+                    </select>
+                    <input type="text" id="outro_vinculo" name="outro_vinculo" class="form-control"
+                        placeholder="Outro vínculo" style="display: none;">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="vinculo" class="label-bold">Vínculo institucional:</label>
-                <select id="vinculo" name="vinculo" class="form-control"
-                    onchange="habilitarOutro('vinculo', 'outro_vinculo')" required>
-                    <option value="Esalq/USP">Esalq/USP</option>
-                    <option value="IFSP campus Piracicaba">IFSP campus Piracicaba</option>
-                    <option value="UFSCar">UFSCar</option>
-                    <option value="outro">Outro</option>
-                </select>
-                <input type="text" id="outro_vinculo" name="outro_vinculo" class="form-control"
-                    placeholder="Outro vínculo" style="display: none;">
+            <div class="row">
+                <div class="form-group col">
+                    <label for="projeto" class="label-bold">Projeto:</label>
+                    <select id="projeto" name="projeto" class="form-control" 
+                    onchange="habilitarOutro('projeto', 'outro_projeto')" required>
+                        <option value="Iniciação Científica">Iniciação Científica</option>
+                        <option value="Estágio">Estágio</option>
+                        <option value="Trabalho de Conclusão de Curso">Trabalho de Conclusão de Curso</option>
+                        <option value="Mestrado">Mestrado</option>
+                        <option value="Doutorado">Doutorado</option>
+                        <option value="outro">Outro</option>
+                    </select>
+                    <input type="text" id="outro_projeto" name="outro_projeto" class="form-control"
+                        placeholder="Outro projeto" style="display: none;">
+                </div>
+                <div class="form-group col">
+                    <label for="orientador" class="label-bold">Orientador do projeto:</label>
+                    <input type="text" id="orientador" class="form-control" name="orientador" required>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="projeto" class="label-bold">Projeto:</label>
-                <select id="projeto" name="projeto" class="form-control" 
-                onchange="habilitarOutro('projeto', 'outro_projeto')" required>
-                    <option value="Iniciação Científica">Iniciação Científica</option>
-                    <option value="Estágio">Estágio</option>
-                    <option value="Trabalho de Conclusão de Curso">Trabalho de Conclusão de Curso</option>
-                    <option value="Mestrado">Mestrado</option>
-                    <option value="Doutorado">Doutorado</option>
-                    <option value="outro">Outro</option>
-                </select>
-                <input type="text" id="outro_projeto" name="outro_projeto" class="form-control"
-                    placeholder="Outro projeto" style="display: none;">
-            </div>
-            <div class="form-group">
-                <label for="orientador" class="label-bold">Orientador do projeto:</label>
-                <input type="text" id="orientador" class="form-control" name="orientador" required>
-            </div>
+            
             <div class="form-group">
                 <label for="tipos_dados" class="label-bold">Tipos de dados solicitados:</label>
                 <div>
