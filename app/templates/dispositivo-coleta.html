@@ -11,12 +11,14 @@
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="mb-3 ml-5">Coletas do dispositivo: {{dispositivo[1]}}</h2>
 
+
             {% if not permissao[5] == 'leitura'%}
             <div class="ml-auto">
+                <a href="{{ url_for('dispositivo_dados', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}"
+                    class="btn btn-secondary mx-2">Dados perdidos <i class="fa fa-fw fa-recycle"></i></a>
                 <a class="btn btn-primary inserir-dispositivo"
                     href="{{ url_for('coleta_inserir', experimento_id=experimento_id, dispositivo_id=dispositivo[0]) }}"><i
                         class="fa fa-fw fa-plus"></i>Inserir</a>
-
             </div>
             {% endif %}
         </div>
@@ -53,15 +55,16 @@
                 {% if coleta[4] %}
                 <form action="/fechar-coleta/{{ experimento[0] }}/{{ dispositivo[0] }}/{{ coleta[0] }}" method="GET">
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" checked
-                            onchange="this.form.submit()">
+                        <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault"
+                            checked onchange="this.form.submit()">
                         <label class="form-check-label" for="flexSwitchCheckDefault">Aberta</label>
                     </div>
                 </form>
                 {% else %}
                 <form action="/abrir-coleta/{{ experimento[0] }}/{{ dispositivo[0] }}/{{ coleta[0] }}" method="GET">
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault" onchange="this.form.submit()">
+                        <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault"
+                            onchange="this.form.submit()">
                         <label class="form-check-label" for="flexSwitchCheckDefault">Fechada</label>
                     </div>
                 </form>

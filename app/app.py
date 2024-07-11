@@ -591,21 +591,15 @@ def detalhes_experimento(experimento_id):
     espaco_disco = f"{espaco_disco:.2f} MB"
     
     
-    #-- Para obter tamanhos individuais das tabelas relacionadas a um experimento
-    # SELECT * FROM get_table_sizes(experimento_id);
+    #-- Para obter tamanhos individuais das tabelas de coleta/dispositivos de um experimento
+    # SELECT * FROM tamanho_tabelas_experimento(experimento_id);
 
-    #-- Para obter o tamanho total de todas as tabelas relacionadas a um experimento
-    # SELECT get_total_size_for_experiment(experimento_id);
-    
-    #----------------------------------------------------------------------------------
-    
-    #-- Para obter tamanhos individuais das tuplas relacionadas a um experimento
-    # SELECT * FROM get_table_sizes_tuple(experimento_id);
-    
-    #-- Para obter o tamanho total de todas as tuplas relacionadas a um experimento
-    # SELECT get_total_size_tuple(57);
 
-    cur.execute("SELECT get_total_size_tuple(%s);", (experimento_id,))
+    #-- Para obter o tamanho total de todas as tabelas de coleta/dispositivos de um experimento
+    # SELECT tamanho_total_experimento(experimento_id);
+
+    
+    cur.execute("SELECT tamanho_total_experimento(%s);", (experimento_id,))
     espaco_banco = cur.fetchone()[0]
     
     print(experimento)
@@ -746,22 +740,39 @@ def deletar_url_experimento(experimento_id, url_id):
     return redirect(url_for('experimento_url', experimento_id=experimento_id, user=current_user))
 
 
+
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo', methods=['GET'])
 @login_required
 def experimento_dispositivos(experimento_id):
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    offset = (page - 1) * per_page
+    
     permissao_usuario = 'nenhuma'
     for permissao in current_user.permissoes:
-        if permissao[0] ==  experimento_id:
+        if permissao[0] == experimento_id:
             permissao_usuario = permissao
     
-    
     cur = conn.cursor()
-    cur.execute("SELECT * FROM api.dispositivo WHERE experimento_id = %s ORDER BY criado_em", (experimento_id,))
+    cur.execute("SELECT * FROM api.dispositivo WHERE experimento_id = %s ORDER BY criado_em LIMIT %s OFFSET %s", (experimento_id, per_page, offset))
     dispositivos = cur.fetchall()
-    print(dispositivos)
+
+    cur.execute("SELECT COUNT(*) FROM api.dispositivo WHERE experimento_id = %s", (experimento_id,))
+    total_dispositivos = cur.fetchone()[0]
+    total_pages = (total_dispositivos + per_page - 1) // per_page
+
     cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
     experimento = cur.fetchone()
-    return render_template('experimento-dispositivos.html', experimento_id=experimento_id,permissao=permissao_usuario, experimento=experimento,dispositivos=dispositivos, user=current_user)
+
+    return render_template('experimento-dispositivos.html', 
+                           experimento_id=experimento_id,
+                           permissao=permissao_usuario, 
+                           experimento=experimento,
+                           dispositivos=dispositivos, 
+                           user=current_user,
+                           total_pages=total_pages, 
+                           current_page=page)
+
 
 @app.route('/ativar-dispositivo/<int:experimento_id>/<int:dispositivo_id>', methods=['GET'])
 @login_required
@@ -884,7 +895,7 @@ def dispositivo_dados(experimento_id, dispositivo_id):
     dispositivo = cur.fetchone()
 
     cur = conn.cursor()
-    tabela = dispositivo[9].replace("'", "")
+    tabela = f"api.dados_dispositivo_{dispositivo_id}"
     cur.execute(f"SELECT * FROM {tabela};")
     dados = cur.fetchall()
         
@@ -1032,7 +1043,7 @@ def coleta_editar(experimento_id, dispositivo_id, coleta_id):
         colunas_json = json.dumps(colunas_detalhes)
         ativo = 'false'
 
-        
+        print("UPDATE api.coleta SET nome=%s, atributos=%s WHERE id=%s", (nome, [colunas_json], coleta_id))
         cur = conn.cursor()
         cur.execute("UPDATE api.coleta SET nome=%s, atributos=%s WHERE id=%s", (nome, [colunas_json], coleta_id))
         conn.commit()
@@ -1481,6 +1492,6 @@ def deletar_url_etapa(experimento_id,etapa_id, url_id):
     return redirect(url_for('etapa_url', etapa_id=etapa_id, experimento_id=experimento_id, user=current_user))
 
 if __name__ == "__main__":
-    #app.run(host='0.0.0.0', port=5002,threaded=True)
+    #app.run(host='0.0.0.0', port=5003,threaded=True)
     app.run(debug=True, threaded=True, port=5003)
 

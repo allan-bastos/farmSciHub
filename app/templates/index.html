@@ -11,7 +11,7 @@
         {% for experimento in experimentos %}
         <div class="experiment-card" onclick="window.location.href='{{ url_for('experimento', experimento_id=experimento.id) }}';">
             <h3><b>{{ experimento[1] }}</b></h3>
-            <h6><b>Categoria:</b> {{ experimento[2] }}</h6>
+            <h5><b>Categoria:</b> {{ experimento[2] }}</h5>
             <p><b>Descrição:</b> {{ experimento[4] }}</p>
         </div>
         {% endfor %}

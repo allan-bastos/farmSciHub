@@ -30,6 +30,7 @@
             {% for coluna in coleta.atributos %}
             <th>{{ loop.index }}. {{ coluna.nome }}</th>
             {% endfor %}
+            <th>data-hora</th>
           </tr>
           <tr>
             {% for coluna in coleta.atributos %}
@@ -55,6 +56,7 @@
             {% for i in range(coleta.atributos|length) %}
             <td>{{ dado[i+2] }}</td>
             {% endfor %}
+            <td>{{ dado[1] }}</td>
           </tr>
           {% endfor %}
         </tbody>
