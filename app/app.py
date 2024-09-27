@@ -21,7 +21,7 @@ import firebase_admin
 from firebase_admin import credentials, auth 
 
 # Inicializa o aplicativo Firebase
-cred = credentials.Certificate('./app/static/farmscihub-credentials.json')  # Coloque o caminho correto para o seu arquivo JSON
+cred = credentials.Certificate('./app/static/farmscihub-credentials.json') 
 firebase_admin.initialize_app(cred)
 
 
@@ -47,7 +47,6 @@ authP = firebase.auth()
 
 
 # Configurações postgresql
-
 DB_HOST = "localhost"
 #DB_HOST = "10.0.2.15"
 DB_NAME = "farmscihub"
@@ -127,7 +126,6 @@ def email_verificado_required(f):
     def decorated_function(*args, **kwargs):
         if current_user.is_authenticated:
             try:
-                # Verifica se o email está verificado no Firebase
                 if not current_user.v_email:
                     return redirect(url_for('verificacao_email'))
             except Exception as e:
@@ -141,7 +139,6 @@ def admin_required(f):
     def decorated_function1(*args, **kwargs):
         if current_user.is_authenticated:
             try:
-                # Verifica se o email está verificado no Firebase
                 if not current_user.isAdmin:
                     return redirect(url_for('acesso_negado'))
             except Exception as e:
@@ -186,10 +183,9 @@ def recuperar_senha():
         email = request.form['email']
         
         try:
-            # Envia um e-mail de redefinição de senha
             authP.send_password_reset_email(email)
             print("Instruções para redefinir sua senha foram enviadas para o seu e-mail.")
-            return redirect(url_for('login'))  # Redireciona para a página de login após o envio
+            return redirect(url_for('login')) 
         except Exception as e:
             print(f"Erro ao enviar e-mail de redefinição de senha: {e}")
             message = "Erro ao tentar enviar o e-mail de recuperação. Verifique se o e-mail está correto e tente novamente."
@@ -1074,12 +1070,12 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 )EOF";
 """
 
-    # Criação de um buffer em memória para o arquivo
+    # Buffer em memória
     buffer = io.BytesIO()
     buffer.write(config_content.encode('utf-8'))
     buffer.seek(0)
 
-    # Envio do arquivo como resposta
+    # arquiv como resposta
     response = make_response(send_file(buffer, as_attachment=True, download_name=f"config_dispositivo_{dispositivo_id}.ino", mimetype='text/plain'))
     response.headers["Content-Disposition"] = f"attachment; filename=config_dispositivo_{dispositivo_id}.ino"
     return response
