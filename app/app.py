@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file, abort, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file, abort, session, make_response
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 import pyrebase
 import psycopg2 #pip install psycopg2 
@@ -16,7 +16,7 @@ from threading import Thread
 import pandas as pd
 import requests
 import shutil
-
+import io
 import firebase_admin
 from firebase_admin import credentials, auth 
 
@@ -177,7 +177,24 @@ app.jinja_env.filters['get_permissao'] = get_permissao
 
 #------------------------------------------------------------USUÁRIO---------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------------------------------
+@app.route('/recuperar-senha', methods=['GET', 'POST'])
+def recuperar_senha():
+    if request.method == 'GET':
+        return render_template('recuperar_senha.html', user=current_user)
 
+    elif request.method == 'POST':
+        email = request.form['email']
+        
+        try:
+            # Envia um e-mail de redefinição de senha
+            authP.send_password_reset_email(email)
+            print("Instruções para redefinir sua senha foram enviadas para o seu e-mail.")
+            return redirect(url_for('login'))  # Redireciona para a página de login após o envio
+        except Exception as e:
+            print(f"Erro ao enviar e-mail de redefinição de senha: {e}")
+            message = "Erro ao tentar enviar o e-mail de recuperação. Verifique se o e-mail está correto e tente novamente."
+            print(message)
+            return render_template('recuperar_senha.html', user=current_user, message=message)
 
 @app.route('/acesso_negado', methods=['GET'])
 @login_required
@@ -244,7 +261,6 @@ def login():
         except Exception as e:
             print(f"Erro durante o processo de login: {e}")
             message = "Credenciais inválidas. Tente novamente." 
-            message = f"Erro durante o processo de login: {e}"
 
     return render_template("login.html", message=message, user=current_user)
 
@@ -977,6 +993,96 @@ def experimento_dispositivos(experimento_id):
                            user=current_user,
                            total_pages=total_pages, 
                            current_page=page)
+
+
+@app.route('/download-config/<int:dispositivo_id>', methods=['GET'])
+@login_required
+@email_verificado_required
+def download_config(dispositivo_id):
+    cur = conn.cursor()
+    cur.execute("SELECT token FROM api.dispositivo WHERE id = %s", (dispositivo_id,))
+    dispositivo = cur.fetchone()
+
+    if dispositivo is None:
+        return "Dispositivo não encontrado.", 404
+
+    dispositivo_token = dispositivo[0]  # Token do dispositivo
+    data_redundancy_topic = f"valores/{dispositivo_id}"
+
+    # Criando o conteúdo do cabeçalho
+    config_content = f"""\
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include <WiFiClientSecure.h>
+
+#define LED_1 4
+#define LED_2 5
+
+//---- WiFi settings
+const char* ssid = "";  // nome de sua rede
+const char* password = ""; // senha de sua rede
+//---- MQTT Broker settings
+const char* mqtt_server = "80fe29ce8268427c9a4a9aeb6cabf603.s2.eu.hivemq.cloud"; // URL do broker
+const char* mqtt_username = ""; // nome de usuário
+const char* mqtt_password = ""; // senha
+const int mqtt_port = 8883; // porta do broker
+
+WiFiClientSecure espClient;
+PubSubClient client(espClient);
+unsigned long lastMsg = 0;
+
+const char* data_topic = "valores";
+const int dispositivo_id = {dispositivo_id}; // ID do dispositivo
+const char* data_redundancy_topic = "{data_redundancy_topic}"; // Tópico de redundância
+const char* disp_token = "{dispositivo_token}"; // Token do dispositivo
+
+#define MSG_BUFFER_SIZE (50)
+char msg[MSG_BUFFER_SIZE];
+
+static const char *root_ca PROGMEM = R"EOF(
+-----BEGIN CERTIFICATE-----
+MIIFazCCA1OgAwIBAgIRAIIQz7DSQONZRGPgu2OCiwAwDQYJKoZIhvcNAQELBQAw
+TzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh
+cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMTUwNjA0MTEwNDM4
+WhcNMzUwNjA0MTEwNDM4WjBPMQswCQYDVQQGEwJVUzEpMCcGA1UEChMgSW50ZXJu
+ZXQgU2VjdXJpdHkgUmVzZWFyY2ggR3JvdXAxFTATBgNVBAMTDElTUkcgUm9vdCBY
+MTCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIBAK3oJHP0FDfzm54rVygc
+h77ct984kIxuPOZXoHj3dcKi/vVqbvYATyjb3miGbESTtrFj/RQSa78f0uoxmyF+
+0TM8ukj13Xnfs7j/EvEhmkvBioZxaUpmZmyPfjxwv60pIgbz5MDmgK7iS4+3mX6U
+A5/TR5d8mUgjU+g4rk8Kb4Mu0UlXjIB0ttov0DiNewNwIRt18jA8+o+u3dpjq+sW
+T8KOEUt+zwvo/7V3LvSye0rgTBIlDHCNAymg4VMk7BPZ7hm/ELNKjD+Jo2FR3qyH
+B5T0Y3HsLuJvW5iB4YlcNHlsdu87kGJ55tukmi8mxdAQ4Q7e2RCOFvu396j3x+UC
+B5iPNgiV5+I3lg02dZ77DnKxHZu8A/lJBdiB3QW0KtZB6awBdpUKD9jf1b0SHzUv
+KBds0pjBqAlkd25HN7rOrFleaJ1/ctaJxQZBKT5ZPt0m9STJEadao0xAH0ahmbWn
+OlFuhjuefXKnEgV4We0+UXgVCwOPjdAvBbI+e0ocS3MFEvzG6uBQE3xDk3SzynTn
+jh8BCNAw1FtxNrQHusEwMFxIt4I7mKZ9YIqioymCzLq9gwQbooMDQaHWBfEbwrbw
+qHyGO0aoSCqI3Haadr8faqU9GY/rOPNk3sgrDQoo//fb4hVC1CLQJ13hef4Y53CI
+rU7m2Ys6xt0nUW7/vGT1M0NPAgMBAAGjQjBAMA4GA1UdDwEB/wQEAwIBBjAPBgNV
+HRMBAf8EBTADAQH/MB0GA1UdDgQWBBR5tFnme7bl5AFzgAiIyBpY9umbbjANBgkq
+hkiG9w0BAQsFAAOCAgEAVR9YqbyyqFDQDLHYGmkgJykIrGF1XIpu+ILlaS/V9lZL
+ubhzEFnTIZd+50xx+7LSYK05qAvqFyFWhfFQDlnrzuBZ6brJFe+GnY+EgPbk6ZGQ
+3BebYhtF8GaV0nxvwuo77x/Py9auJ/GpsMiu/X1+mvoiBOv/2X/qkSsisRcOj/KK
+NFtY2PwByVS5uCbMiogziUwthDyC3+6WVwW6LLv3xLfHTjuCvjHIInNzktHCgKQ5
+ORAzI4JMPJ+GslWYHb4phowim57iaztXOoJwTdwJx4nLCgdNbOhdjsnvzqvHu7Ur
+TkXWStAmzOVyyghqpZXjFaH3pO3JLF+l+/+sKAIuvtd7u+Nxe5AW0wdeRlN8NwdC
+jNPElpzVmbUq4JUagEiuTDkHzsxHpFKVK7q4+63SM1N95R1NbdWhscdCb+ZAJzVc
+oyi3B43njTOQ5yOf+1CceWxG1bQVs5ZufpsMljq4Ui0/1lvh+wjChP4kqKOJ2qxq
+4RgqsahDYVvTH9w7jXbyLeiNdd8XM2w9U/t7y0Ff/9yi0GE44Za4rF2LN9d11TPA
+mRGunUHBcnWEvgJBQl9nJEiU0Zsnvgc/ubhPgXRR4Xq37Z0j4r7g1SgEEzwxA57d
+emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
+-----END CERTIFICATE-----
+)EOF";
+"""
+
+    # Criação de um buffer em memória para o arquivo
+    buffer = io.BytesIO()
+    buffer.write(config_content.encode('utf-8'))
+    buffer.seek(0)
+
+    # Envio do arquivo como resposta
+    response = make_response(send_file(buffer, as_attachment=True, download_name=f"config_dispositivo_{dispositivo_id}.ino", mimetype='text/plain'))
+    response.headers["Content-Disposition"] = f"attachment; filename=config_dispositivo_{dispositivo_id}.ino"
+    return response
 
 
 @app.route('/ativar-dispositivo/<int:experimento_id>/<int:dispositivo_id>', methods=['GET'])

@@ -13,12 +13,12 @@ broker_address = '80fe29ce8268427c9a4a9aeb6cabf603.s2.eu.hivemq.cloud'
 broker_port = 8883
 
 
-uri = 'mongodb://farmscihub_user:fsh_2024@localhost:27017/'
+uri = 'mongodb://farmscihub_user:fsh_2024@localhost:27017/farmscihub'
+#uri = 'mongodb://farmscihub_user:fsh_2024@10.0.2.15:27017/farmscihub'
 #uri = 'mongodb://root:password@10.0.2.15:27017/'
+#uri = 'mongodb://root:password@localhost:27017/'
 mongo_client = MongoClient(uri)
 database = mongo_client['farmscihub']
-collection_dispositivo = database['dispositivo']
-collection_valores = database['valores'] 
 
 
 # Configurações postgresql
@@ -28,6 +28,57 @@ DB_NAME = "farmscihub"
 DB_USER = "farmscihub_admin"
 DB_PASS = "pibiti.fsh.2010"
 DB_PORT = "5433"
+
+
+def insertPayloadMongoDB(dispositivo_id, tabela, payload_data, atributos):
+    document = {
+            "dispositivo_id": dispositivo_id,
+            "timestamp": time.time()
+        }
+    for i, atributo in enumerate(atributos):
+        document[atributo['nome']] = payload_data[i] 
+
+    try:
+        # Verifica se a coleção já existe
+        if tabela in database.list_collection_names():
+            # Se a coleção existir, insere o documento
+            collection = database[tabela]
+            collection.insert_one(document)
+            print(f"Documento adicionado à coleção {tabela} no MongoDB!")
+        else:
+            # Se a coleção não existir, cria e insere o documento
+            collection = database[tabela]
+            collection.insert_one(document)
+            print(f"Coleção {tabela} criada e documento inserido no MongoDB!")
+
+    except Exception as e:
+        print(f"Erro ao inserir dados no MongoDB: {e}")
+        
+        
+def insertPayloadMongoDB_gen(dispositivo_id, tabela, payload_data):
+    document = {
+            "dispositivo_id": dispositivo_id,
+            "timestamp": time.time()
+        }
+    for i, data in enumerate(payload_data):
+        document[f'dado_{i}'] = data
+
+    try:
+        # Verifica se a coleção já existe
+        if tabela in database.list_collection_names():
+            # Se a coleção existir, insere o documento
+            collection = database[tabela]
+            collection.insert_one(document)
+            print(f"Documento adicionado à coleção {tabela} no MongoDB!")
+        else:
+            # Se a coleção não existir, cria e insere o documento
+            collection = database[tabela]
+            collection.insert_one(document)
+            print(f"Coleção {tabela} criada e documento inserido no MongoDB!")
+
+    except Exception as e:
+        print(f"Erro ao inserir dados no MongoDB: {e}")
+
 
 def insertPayloadPostgres(payload_data):
 
@@ -81,6 +132,9 @@ def insertPayloadPostgres(payload_data):
                                atributos.append(item)
 
                        if len(payload_data) == len(atributos):
+                           print(atributos)
+                           tabela = f'dados_coleta_{coleta_id}'
+                           insertPayloadMongoDB(dispositivo_id, tabela, payload_data, atributos)
                            comando_inserir_coleta = f"""
                            INSERT INTO api.dados_coleta_{coleta_id} ({fields})
                            VALUES ({values});
@@ -93,8 +147,10 @@ def insertPayloadPostgres(payload_data):
                            #time.sleep(0.1)
 
                        else:
+                           tabela = f'dados_dispositivo_{dispositivo_id.strip()}'
+                           insertPayloadMongoDB_gen(dispositivo_id, tabela, payload_data)
                            comando_inserir_dispositivo = f"""
-                           INSERT INTO api.dados_dispositivo_{dispositivo_id} ({fields})
+                           INSERT INTO api.dados_dispositivo_{dispositivo_id.strip()} ({fields})
                            VALUES ({values});
                            """
                            cursor.execute(comando_inserir_dispositivo, (payload_data))
@@ -103,16 +159,17 @@ def insertPayloadPostgres(payload_data):
                            client.publish(f"valores/{dispositivo_id}", payload=f"8 + {payload_data[0]}", qos=1) 
                            print("Quantidade de atributos não conferem. Dados inseridos na tabela de backup do dispositivo.")
                    else:
-
-                       comando_inserir_dispositivo = f"""
-                       INSERT INTO api.dados_dispositivo_{dispositivo_id} ({fields})
-                       VALUES ({values});
-                       """
-                       cursor.execute(comando_inserir_dispositivo, (payload_data))
-                       conn.commit()
-                       print(comando_inserir_dispositivo, (payload_data))
-                       client.publish(f"valores/{dispositivo_id}", payload=f"7 + {payload_data[1]}", qos=1)
-                       print("Nenhuma coleta aberta. Dados inseridos na tabela de backup do dispositivo.")
+                        tabela = f'dados_dispositivo_{dispositivo_id.strip()}'
+                        insertPayloadMongoDB_gen(dispositivo_id, tabela, payload_data)
+                        comando_inserir_dispositivo = f"""
+                        INSERT INTO api.dados_dispositivo_{dispositivo_id.strip()} ({fields})
+                        VALUES ({values});
+                        """
+                        cursor.execute(comando_inserir_dispositivo, (payload_data))
+                        conn.commit()
+                        print(comando_inserir_dispositivo, (payload_data))
+                        client.publish(f"valores/{dispositivo_id}", payload=f"7 + {payload_data[1]}", qos=1)
+                        print("Nenhuma coleta aberta. Dados inseridos na tabela de backup do dispositivo.")
                else:
                    client.publish(f"valores/{dispositivo_id}", payload=f"6 + {payload_data[1]}", qos=1)
                    print("Dispositivo desabilitado. Dados não inseridos.")
