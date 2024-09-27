@@ -4,13 +4,18 @@
         <h1>Login</h1>
         <form action="/login" method="post">
             <div class="form-group">
-                <label for="username">Usuário:</label>
-                <input type="text" class="form-control" id="username" name="username" required>
+                <label for="email">email:</label>
+                <input type="text" class="form-control" id="email" name="email" required>
             </div>
             <div class="form-group">
                 <label for="password">Senha:</label>
                 <input type="password" class="form-control" id="password" name="password" required>
             </div>
+            {% if message %}
+            <div class="alert alert-danger" role="alert">
+                {{ message }}
+            </div>
+            {% endif %}
             <a href="/registro" class="btn btn-secondary">Cadastre-se</a>
             <button type="submit" class="btn btn-primary">Entrar</button>
         </form>

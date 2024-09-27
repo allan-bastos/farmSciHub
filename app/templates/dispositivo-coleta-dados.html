@@ -44,7 +44,7 @@
               <button class="btn btn-primary grafico-dispositivo" data-toggle="modal"
                 data-target="#myModal{{loop.index}}"><i class="fa fa-fw fa-wave-square"></i> Gráfico</button>
               <input type="hidden" id="myValue{{loop.index}}"
-                value="/static/graficos/grafico-{{dispositivo_id}}-{{coluna.nome}}.png">
+                value="/static/graficos/grafico-{{coleta.id}}-{{coluna.nome}}.png">
             </th>
             {% endif %}
             {% endfor %}

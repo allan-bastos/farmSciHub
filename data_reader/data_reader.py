@@ -2,6 +2,8 @@ import paho.mqtt.client as paho
 import psycopg2
 import time
 import json
+from pymongo import MongoClient
+from bson import ObjectId
 
 # Configurações paho
 client = paho.Client(paho.CallbackAPIVersion.VERSION2)
@@ -9,6 +11,14 @@ client_username = 'redes1'
 client_password = 'projetoredes1'
 broker_address = '80fe29ce8268427c9a4a9aeb6cabf603.s2.eu.hivemq.cloud'
 broker_port = 8883
+
+
+uri = 'mongodb://farmscihub_user:fsh_2024@localhost:27017/'
+#uri = 'mongodb://root:password@10.0.2.15:27017/'
+mongo_client = MongoClient(uri)
+database = mongo_client['farmscihub']
+collection_dispositivo = database['dispositivo']
+collection_valores = database['valores'] 
 
 
 # Configurações postgresql

@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+{% block head %}
+<link rel="stylesheet" href="/static/styles.css">
+{% endblock %}
+
+{% block body %}
+<div class="home-container">
+    <h1>Acesso Negado <i class="fas fa-exclamation-triangle error-icon"></i> </h1>
+
+    <div class="perfil-card">
+        <p>Desculpe, {{ current_user.nome_completo }} com o <strong>e-mail:</strong> <u>{{ current_user.email }}</u>, mas você <strong>não tem permissão</strong> para acessar essa página <i class="fas fa-exclamation-triangle error-icon"></i> </p>
+    </div>
+</div>
+{% endblock %}

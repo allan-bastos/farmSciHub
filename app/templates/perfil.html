@@ -10,9 +10,13 @@
         <div class="perfil-card">
             <p><strong>ID:</strong> {{user_id}}</p>
             <p><strong>Usuário:</strong> {{nome}}</p>
-            <p><strong>Senha:</strong> {{senha}}</p>
             <p><strong>Nome completo:</strong> {{nome_completo}}</p>
             <p><strong>Vínculo Institucional:</strong> {{vinculo}}</p>
+            {% if email_verified %} 
+            <p><strong>E-mail:</strong> {{email}} - Verificado</p>
+            {% else %}
+            <p><strong>E-mail:</strong> {{email}} - Não verificado</p>
+            {% endif %}
         </div>
 
         <div class="perfil-buttons">

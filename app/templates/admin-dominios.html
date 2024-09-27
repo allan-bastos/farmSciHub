@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="home-container">
+    <h1>Gerenciar Domínios Permitidos</h1>
+    
+    <form action="/admin/dominios" method="POST">
+        <div class="form-group">
+            <label for="dominio">Adicionar Novo Domínio:</label>
+            <input type="text" class="form-control" id="dominio" name="dominio" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Adicionar Domínio</button>
+    </form>
+
+    <h3 class="mt-5">Domínios Permitidos</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Domínio</th>
+                <th>Ação</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dominio in dominios %}
+            <tr>
+                <td>{{ dominio[0] }}</td>
+                <td>{{ dominio[1] }}</td>
+                <td>
+                    <form action="/admin/dominios/remover/{{ dominio[0] }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn btn-danger">Remover</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

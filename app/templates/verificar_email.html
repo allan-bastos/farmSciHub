@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+{% block head %}
+<link rel="stylesheet" href="/static/styles.css">
+{% endblock %}
+
+{% block body %}
+<div class="home-container">
+    <h1>Verifique seu E-mail</h1>
+
+    <div class="perfil-card">
+        <p><strong>Usuário:</strong> {{ current_user.nome }}</p>
+        <p><strong>E-mail:</strong> {{ current_user.email }} - Não verificado</p>
+        <p>Por favor, verifique seu e-mail clicando no link enviado para {{ current_user.email }}.</p>
+        <p>Se você não recebeu o e-mail, clique no botão abaixo para reenviar o e-mail de verificação.</p>
+    </div>
+
+    <div class="verify-buttons">
+        <div class="row">
+            <div class="col-auto mr-auto ml-0">
+                <form method="POST" action="{{ url_for('verificar_email') }}">
+                    <button type="submit" class="btn btn-primary">Reenviar E-mail de Verificação</button>
+                </form>
+            </div>
+            <div class="col-auto"> 
+                <a href="{{ url_for('logout') }}" class="btn btn-danger">Sair</a>
+            </div>
+        </div>
+
+    </div>
+</div>
+</div>
+{% endblock %}

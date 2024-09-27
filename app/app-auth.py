@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file, abort
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file, abort, session
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
+import pyrebase
 import psycopg2 #pip install psycopg2 
 import psycopg2.extras
 from werkzeug.utils import secure_filename
@@ -8,15 +9,42 @@ import json
 import matplotlib
 import matplotlib.ticker as ticker
 matplotlib.use('Agg')
-
+from functools import wraps
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta, date
 from threading import Thread
 import pandas as pd
-
+import requests
 import shutil
 
+import firebase_admin
+from firebase_admin import credentials, auth 
+
+# Inicializa o aplicativo Firebase
+cred = credentials.Certificate('./app/static/farmscihub-credentials.json')  # Coloque o caminho correto para o seu arquivo JSON
+firebase_admin.initialize_app(cred)
+
+
 from jinja2 import Template
+
+# config firebase
+
+firebaseConfig = {
+    'apiKey': "AIzaSyDS9PwNH2sEB1kZ8-BHFSXQo7yCIPRzFOU",
+    'authDomain': "farmscihub-5a778.firebaseapp.com",
+    'projectId': "farmscihub-5a778",
+    'storageBucket': "farmscihub-5a778.appspot.com",
+    'messagingSenderId': "1064882604925",
+    'appId': "1:1064882604925:web:ec349318593226d2301a14",
+    'measurementId': "G-NJ5DYY90JQ",
+    'databaseURL': ""
+}
+
+firebase = pyrebase.initialize_app(firebaseConfig)
+authP = firebase.auth()
+
+
+
 
 # Configurações postgresql
 
@@ -51,19 +79,23 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 class User(UserMixin):
-    def __init__(self, id, nome, senha, nome_completo, vinculo, acessos, permissoes):
+    def __init__(self, id, nome, senha, nome_completo, vinculo, acessos, email, firebase_id, v_email, isAdmin, permissoes):
         self.id = id
         self.nome = nome
         self.senha = senha
+        self.email = email
         self.nome_completo = nome_completo
         self.vinculo = vinculo
         self.acessos = acessos
         self.permissoes = permissoes
+        self.firebase_id = firebase_id
+        self.v_email = v_email
+        self.isAdmin = isAdmin
         
 @login_manager.user_loader
 def load_user(user_id):
     cur = conn.cursor()
-    cur.execute("SELECT id, nome, senha, nome_completo, vinculo, acessos FROM local.usuario WHERE id = %s", (user_id,))
+    cur.execute("SELECT id, nome, senha, nome_completo, vinculo, acessos, email, firebase_id, v_email, admin FROM local.usuario WHERE id = %s", (user_id,))
     user_data = cur.fetchone()
     print(user_data)
     if user_data:
@@ -74,7 +106,7 @@ def load_user(user_id):
                         """, (user_id,))
         permissions_data = cur.fetchall()
         print(permissions_data)
-        user = User(user_data[0], user_data[1], user_data[2], user_data[3], user_data[4], user_data[5], permissions_data)
+        user = User(user_data[0], user_data[1], user_data[2], user_data[3], user_data[4], user_data[5], user_data[6], user_data[7], user_data[8], user_data[9],permissions_data)
         
         
         return user
@@ -90,10 +122,36 @@ def get_folder_size(path):
   return total_size
 
 
+def email_verificado_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if current_user.is_authenticated:
+            try:
+                # Verifica se o email está verificado no Firebase
+                if not current_user.v_email:
+                    return redirect(url_for('verificacao_email'))
+            except Exception as e:
+                print(f"Erro ao verificar email no Firebase: {e}")
+                return redirect(url_for('verificar_email'))
+        return f(*args, **kwargs)
+    return decorated_function
 
+def admin_required(f):
+    @wraps(f)
+    def decorated_function1(*args, **kwargs):
+        if current_user.is_authenticated:
+            try:
+                # Verifica se o email está verificado no Firebase
+                if not current_user.isAdmin:
+                    return redirect(url_for('acesso_negado'))
+            except Exception as e:
+                print(f"Erro ao verificar admin: {e}")
+                return redirect(url_for('acesso_negado'))
+        return f(*args, **kwargs)
+    return decorated_function1
 
 @app.route('/')
-def index():
+def index():    
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     s = "SELECT * FROM api.experimento;"
     cur.execute(s)
@@ -121,6 +179,11 @@ app.jinja_env.filters['get_permissao'] = get_permissao
 #----------------------------------------------------------------------------------------------------------------------------------------
 
 
+@app.route('/acesso_negado', methods=['GET'])
+@login_required
+def acesso_negado():
+    if request.method == 'GET':
+        return render_template('acesso_negado.html', user=current_user)
 
 @app.route('/perfil', methods=['GET', 'POST'])
 @login_required
@@ -129,89 +192,209 @@ def perfil():
         user_id = current_user.id
         nome = current_user.nome
         senha = current_user.senha
+        email = current_user.email
         nome_completo = current_user.nome_completo
         vinculo = current_user.vinculo
-        return render_template('perfil.html', user_id=user_id, nome=nome, senha=senha, nome_completo=nome_completo, vinculo=vinculo, user=current_user)
-    elif request.method == 'POST':
-        print('a')
+        email_verified = current_user.v_email
+        return render_template('perfil.html', user_id=user_id, nome=nome, senha=senha, nome_completo=nome_completo, vinculo=vinculo, email=email, email_verified=email_verified, user=current_user)
 
 @app.route('/logout', methods=['GET'])
 @login_required
 def logout():
+    try:
+        authP.current_user = None
+        print("Usuário deslogado no Firebase.")
+    except Exception as e:
+        print(f"Erro ao deslogar no Firebase: {e}")
     logout_user() 
-    flash('Você saiu com sucesso.', 'success')
-    return redirect(url_for('index', user=current_user))
+    print('Você saiu com sucesso.')
+    return redirect(url_for('index'))
 
-@app.route('/login',  methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
+    message = ""
     if request.method == 'GET':
         return render_template('login.html', user=current_user)
     elif request.method == 'POST':
-        nome = request.form['username']
+        email = request.form['email']
         senha = request.form['password']
-        cur = conn.cursor()
-        cur.execute("SELECT id FROM local.usuario WHERE nome = %s and senha = %s", (nome, senha))        
-        user_id = cur.fetchone() 
-        if user_id:
-            user = load_user(user_id)
-            login_user(user)  
-            flash('Login bem sucedido!', 'success')
-            return redirect(url_for('perfil', user=current_user))
-        else:
-            flash('Credenciais inválidas. Tente novamente.', 'error')
-            return redirect(url_for('login', user=current_user))
+        try:
+            userf = authP.sign_in_with_email_and_password(email, senha)
+            userf = authP.refresh(userf['refreshToken'])
+            
+            user_info = authP.get_account_info(userf['idToken'])
+            email_verified = user_info['users'][0]['emailVerified']
+            print(email_verified)
+
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM local.usuario WHERE email = %s", (email,))
+            user_id = cur.fetchone()
+
+            if user_id:
+                cur = conn.cursor()
+                cur.execute("UPDATE local.usuario set firebase_id = %s, v_email = %s WHERE id = %s", (userf['idToken'], email_verified, user_id[0]))
+                conn.commit()
+
+                user = load_user(user_id[0]) 
+                login_user(user)
+                return redirect(url_for('perfil', user=current_user))
+            else:
+                message = "Email não encontrado no sistema."
+
+        except Exception as e:
+            print(f"Erro durante o processo de login: {e}")
+            message = "Credenciais inválidas. Tente novamente." 
+            message = f"Erro durante o processo de login: {e}"
+
+    return render_template("login.html", message=message, user=current_user)
+
 
 
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
     if request.method == 'GET':
         return render_template('cadastro.html', user=current_user)
+
     elif request.method == 'POST':
         nome = request.form['username']
         senha = request.form['password']
         nome_completo = request.form['nome_completo']
         vinculo = request.form['vinculo']
-        cur = conn.cursor()
-        cur.execute("INSERT INTO local.usuario (nome, senha, nome_completo, vinculo) VALUES (%s, %s, %s, %s)", (nome, senha, nome_completo, vinculo))
-        conn.commit()
-        print("Registro POST recebido")
-        print("Nome de usuário:", nome)
-        print("Senha:", senha)
-        flash('Registro bem sucedido! Faça login para continuar.', 'success')
+        email = request.form['email']
+
+        domain = email.split('@')[-1]
+
+    
+        with conn.cursor() as cur:
+            cur.execute("SELECT dominio FROM local.dominios")
+            allowed_domains = [row[0] for row in cur.fetchall()] 
+            print(allowed_domains)
+
+        if domain not in allowed_domains:
+            message = "O registro é permitido apenas para domínios específicos."
+            return render_template('cadastro.html', user=current_user, message=message)
+
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM local.usuario WHERE email = %s", (email,))
+            user_obj = cur.fetchone()
+
+            if user_obj:
+                message = "Este email já está registrado. Por favor, utilize outro."
+                return render_template('cadastro.html', user=current_user, message=message)
+
+            user = authP.create_user_with_email_and_password(email, senha)
+            authP.send_email_verification(user['idToken'])
+            cur.execute("INSERT INTO local.usuario (nome, senha, nome_completo, vinculo, email) VALUES (%s, %s, %s, %s, %s)", (nome, senha, nome_completo, vinculo, email))
+            conn.commit()
 
         return redirect(url_for('login', user=current_user))
+
+
+@app.route('/verificar_email', methods=['GET', 'POST'])
+@login_required
+def verificar_email():
+    if request.method == 'GET':
+        return render_template('verificar_email.html', user=current_user)
     
+    elif request.method == 'POST':
+        try:
+            # Reenviar email de verificação
+            authP.send_email_verification(current_user.firebase_token)
+            message = "Email de verificação reenviado. Por favor, cheque sua caixa de entrada."
+        except Exception as e:
+            message = f"Erro ao reenviar email de verificação: {e}"
+        
+        return render_template('verificar_email.html', message=message, user=current_user)
+    
+
+
 @app.route('/editar-perfil', methods=['GET', 'POST'])
+@login_required
 def editar_perfil():
     if request.method == 'GET':
         nome = current_user.nome
-        senha = current_user.senha
         nome_completo = current_user.nome_completo
         vinculo = current_user.vinculo
-        return render_template('perfil-editar.html', nome=nome, senha=senha, nome_completo=nome_completo, vinculo=vinculo, user=current_user)
+        return render_template('perfil-editar.html', nome=nome, nome_completo=nome_completo, vinculo=vinculo, user=current_user)
+    
     elif request.method == 'POST':
         nome = request.form['username']
-        senha = request.form['password']
+        senha_atual = request.form['senha_atual']
+        nova_senha = request.form['nova_senha']
         nome_completo = request.form['nome_completo']
         vinculo = request.form['vinculo']
+
         cur = conn.cursor()
-        cur.execute("UPDATE local.usuario SET nome=%s, senha=%s, nome_completo=%s, vinculo=%s WHERE id=%s", (nome, senha, nome_completo, vinculo, current_user.id))
+        cur.execute("UPDATE local.usuario SET nome=%s, nome_completo=%s, vinculo=%s WHERE id=%s", (nome, nome_completo, vinculo, current_user.id))
         conn.commit()
-        return redirect(url_for('perfil', user=current_user))
+        message = "Perfil alterado com sucesso."
+
+        try:
+            if nova_senha:
+                user = auth.get_user_by_email(current_user.email)
+                auth.update_user(
+                    user.uid,
+                    password=nova_senha
+                )
+                message = "Senha e/ou perfil alterados com sucesso."
+        except Exception as e:
+            print(f"Erro ao alterar a senha: {e}")
+            message = "Erro ao tentar alterar senha e/ou perfil. Tente novamente."
+
+        return render_template('perfil-editar.html', nome=nome, nome_completo=nome_completo, vinculo=vinculo, user=current_user, message=message)
+
+@app.route('/resetar-senha', methods=['GET'])
+@login_required
+def resetar_senha():
+    try:
+        authP.send_password_reset_email(current_user.email)
+        message = "Um e-mail foi enviado para redefinir sua senha."
+        print(message)
+    except Exception as e:
+        print(f"Erro ao enviar e-mail de redefinição: {e}")
+        message = "Erro ao tentar enviar o e-mail de redefinição. Tente novamente."
+        print(message)
+
+    return redirect(url_for('editar_perfil', user=current_user))
+
+
     
 @app.route('/deletar-perfil', methods=['GET'])
+@login_required
 def deletar_perfil():
-    cur = conn.cursor()
-    
-    cur.execute("""UPDATE api.experimento
-        SET disponivel_para = array_remove(disponivel_para, %s);
-        """, (current_user.id,))
-    conn.commit()
-    
-    cur.execute("DELETE FROM local.usuario WHERE id=%s", (current_user.id,))
-    conn.commit()
-    
-    return redirect(url_for('logout', user=current_user))
+    try:
+        # URL para deletar o usuário
+        url = f"https://identitytoolkit.googleapis.com/v1/accounts:delete?key={firebaseConfig['apiKey']}"
+
+        # Dados necessários para deletar o usuário
+        data = {
+            "idToken": current_user.firebase_id  # Usando o token de autenticação do usuário
+        }
+
+        # Fazer a requisição para deletar o usuário no Firebase
+        response = requests.post(url, json=data)
+
+        if response.status_code == 200:
+            cur = conn.cursor()
+            cur.execute("""UPDATE api.experimento
+                SET disponivel_para = array_remove(disponivel_para, %s);
+                """, (current_user.id,))
+            conn.commit()
+
+            cur.execute("DELETE FROM local.usuario WHERE id=%s", (current_user.id,))
+            conn.commit()
+
+            return redirect(url_for('logout', user=current_user))
+        else:
+            print(f"Erro ao deletar usuário no Firebase: {response.json()}")
+            flash('Erro ao deletar perfil no Firebase.', 'danger')
+            return redirect(url_for('perfil', user=current_user))
+
+    except Exception as e:
+        print(f"Erro ao deletar usuário: {e}")
+        flash('Erro ao deletar perfil.', 'danger')
+        return redirect(url_for('perfil', user=current_user))
+
 
 
 
@@ -222,6 +405,7 @@ def deletar_perfil():
 
 @app.route('/compartilhados_experimento/<int:experimento_id>')
 @login_required
+@email_verificado_required
 def compartilhamento_experimento(experimento_id):
     usuarios=[]
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -246,6 +430,7 @@ def compartilhamento_experimento(experimento_id):
 
 @app.route('/solicitacoes_experimento/<int:experimento_id>')
 @login_required
+@email_verificado_required
 def solicitacoes_experimento(experimento_id):
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     cur.execute("SELECT * FROM local.solicitacoes WHERE experimento_id = %s AND status= 'aguardando' ORDER BY data_hora DESC;", (experimento_id,))
@@ -257,6 +442,7 @@ def solicitacoes_experimento(experimento_id):
 
 @app.route('/historico-solicitacoes-experimento/<int:experimento_id>/<int:usuario_id>/')
 @login_required
+@email_verificado_required
 def historico_solicitacoes_experimento(experimento_id, usuario_id):
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     cur.execute("SELECT * FROM local.solicitacoes WHERE experimento_id = %s AND solicitante_id = %s ORDER BY data_hora DESC;", (experimento_id, usuario_id))
@@ -270,6 +456,7 @@ def historico_solicitacoes_experimento(experimento_id, usuario_id):
 
 @app.route('/<int:experimento_id>/recusar-solicitacao/<int:solicitacao_id>')
 @login_required
+@email_verificado_required
 def recusar_solicitacao(experimento_id, solicitacao_id):
     cur = conn.cursor()
     cur.execute("UPDATE local.solicitacoes SET status='recusada' WHERE id = %s", (solicitacao_id,))
@@ -278,6 +465,7 @@ def recusar_solicitacao(experimento_id, solicitacao_id):
 
 @app.route('/aceitar-solicitacao/<int:id>')
 @login_required
+@email_verificado_required
 def aceitar_solicitacao(id):
     cur = conn.cursor()
     cur.execute("SELECT experimento_id, solicitante_id, criador_experimento_id FROM local.solicitacoes WHERE id = %s", (id,))
@@ -313,6 +501,7 @@ def aceitar_solicitacao(id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/permissao/<int:usuario_id>', methods=['POST', 'GET'])
 @login_required
+@email_verificado_required
 def cadastrar_permissoes(experimento_id, usuario_id):
     cur = conn.cursor()
     cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
@@ -369,6 +558,7 @@ def cadastrar_permissoes(experimento_id, usuario_id):
         
 @app.route('/detalhes-experimento/<int:experimento_id>/remover-permissao/<int:usuario_id>', methods=['GET'])
 @login_required
+@email_verificado_required
 def remover_permissoes(experimento_id, usuario_id):
     cur = conn.cursor()
     cur.execute("""UPDATE api.experimento
@@ -460,6 +650,7 @@ def formulario_requisicao(id):
     
 @app.route('/inserir-experimento', methods=['GET', 'POST'])
 @login_required
+@email_verificado_required
 def inserir_experimento():
     if request.method == 'GET':
         return render_template('experimento-inserir.html', user=current_user)
@@ -502,6 +693,7 @@ def inserir_experimento():
     
 @app.route('/detalhes-experimento/<int:experimento_id>/editar', methods=['GET', 'POST'])
 @login_required
+@email_verificado_required
 def editar_experimento(experimento_id):
     if request.method == 'GET':
         cur = conn.cursor()
@@ -525,6 +717,7 @@ def editar_experimento(experimento_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/deletar', methods=['GET'])
 @login_required
+@email_verificado_required
 def deletar_experimento(experimento_id):
     cur = conn.cursor()
     cur.execute("""
@@ -547,6 +740,7 @@ def deletar_experimento(experimento_id):
     
 @app.route('/experimento/<int:experimento_id>')
 @login_required
+@email_verificado_required
 def experimento(experimento_id):
     cur = conn.cursor()
     cur.execute("SELECT * FROM api.experimento WHERE id = %s", (experimento_id,))
@@ -555,6 +749,7 @@ def experimento(experimento_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>')
 @login_required
+@email_verificado_required
 def detalhes_experimento(experimento_id):
     permissao_usuario = 'nenhuma'
     for permissao in current_user.permissoes:
@@ -610,6 +805,7 @@ def detalhes_experimento(experimento_id):
 
 @app.route('/meus-experimentos')
 @login_required
+@email_verificado_required
 def meus_experimentos():
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     cur.execute("SELECT * FROM api.experimento WHERE cadastrado_por = %s", (current_user.id,))
@@ -627,6 +823,7 @@ def meus_experimentos():
 
 @app.route('/detalhes-experimento/<int:experimento_id>/anexos', methods=['GET', 'POST'])
 @login_required
+@email_verificado_required
 def experimento_anexos(experimento_id):
     if request.method == 'POST':
         if 'file' in request.files:
@@ -661,6 +858,7 @@ def experimento_anexos(experimento_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/anexos/<int:anexo_id>/visualizar')
 @login_required
+@email_verificado_required
 def download_anexos_experimento(experimento_id, anexo_id):
     cur = conn.cursor()
     cur.execute("SELECT nome_do_arquivo FROM api.anexos_experimento WHERE id = %s", (anexo_id,))
@@ -686,6 +884,7 @@ def download_anexos_experimento(experimento_id, anexo_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/anexos/<int:anexo_id>/deletar')
 @login_required
+@email_verificado_required
 def deletar_anexos_experimento(experimento_id, anexo_id):
     cur = conn.cursor()
     cur.execute("SELECT nome_do_arquivo FROM api.anexos_experimento WHERE id = %s", (anexo_id,))
@@ -711,6 +910,7 @@ def deletar_anexos_experimento(experimento_id, anexo_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/url', methods=['GET','POST'])
 @login_required
+@email_verificado_required
 def experimento_url(experimento_id):
     if request.method == 'POST':    
         url = request.form['url']
@@ -735,6 +935,7 @@ def experimento_url(experimento_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/url/<int:url_id>/deletar')
 @login_required
+@email_verificado_required
 def deletar_url_experimento(experimento_id, url_id):
     cur = conn.cursor()
     cur.execute("DELETE FROM api.urls_experimento WHERE id = %s", (url_id,))
@@ -746,6 +947,7 @@ def deletar_url_experimento(experimento_id, url_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo', methods=['GET'])
 @login_required
+@email_verificado_required
 def experimento_dispositivos(experimento_id):
     page = request.args.get('page', 1, type=int)
     per_page = 10
@@ -779,6 +981,7 @@ def experimento_dispositivos(experimento_id):
 
 @app.route('/ativar-dispositivo/<int:experimento_id>/<int:dispositivo_id>', methods=['GET'])
 @login_required
+@email_verificado_required
 def ativar_dispositivo(experimento_id, dispositivo_id):
     cur = conn.cursor()
     cur.execute("UPDATE api.dispositivo SET ativo = True WHERE id = %s;", (dispositivo_id,))
@@ -788,6 +991,7 @@ def ativar_dispositivo(experimento_id, dispositivo_id):
     
 @app.route('/desativar-dispositivo/<int:experimento_id>/<int:dispositivo_id>', methods=['GET'])
 @login_required
+@email_verificado_required
 def desativar_dispositivo(experimento_id, dispositivo_id):
     cur = conn.cursor()
     cur.execute("UPDATE api.dispositivo SET ativo = False WHERE id = %s;", (dispositivo_id,))
@@ -800,6 +1004,7 @@ def desativar_dispositivo(experimento_id, dispositivo_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/inserir', methods=['GET', 'POST'])
 @login_required
+@email_verificado_required
 def experimento_dispositivos_inserir(experimento_id):
     if request.method == 'POST':
         nome = request.form['nome']
@@ -847,6 +1052,7 @@ def experimento_dispositivos_inserir(experimento_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/editar', methods=['GET', 'POST'])
 @login_required
+@email_verificado_required
 def experimento_dispositivo_editar(experimento_id, dispositivo_id):
     if request.method == 'GET':
         cur = conn.cursor()
@@ -870,6 +1076,7 @@ def experimento_dispositivo_editar(experimento_id, dispositivo_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/deletar')
 @login_required
+@email_verificado_required
 def experimento_dispositivo_deletar(experimento_id, dispositivo_id):
     cur = conn.cursor()
     
@@ -892,6 +1099,7 @@ def experimento_dispositivo_deletar(experimento_id, dispositivo_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/dados', methods=['GET'])
 @login_required
+@email_verificado_required
 def dispositivo_dados(experimento_id, dispositivo_id):
     cur = conn.cursor()
     cur.execute("SELECT * FROM api.dispositivo WHERE id = %s", (dispositivo_id,))
@@ -911,6 +1119,7 @@ def dispositivo_dados(experimento_id, dispositivo_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/dados/limpar')
 @login_required
+@email_verificado_required
 def dispositivo_dados_limpar(experimento_id, dispositivo_id):
     cur = conn.cursor()
     
@@ -926,6 +1135,7 @@ def dispositivo_dados_limpar(experimento_id, dispositivo_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/', methods=['GET'])
 @login_required
+@email_verificado_required
 def experimento_dispositivo_coleta(experimento_id, dispositivo_id):
     permissao_usuario = 'nenhuma'
     for permissao in current_user.permissoes:
@@ -949,6 +1159,7 @@ def experimento_dispositivo_coleta(experimento_id, dispositivo_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/inserir', methods=['GET', 'POST'])
 @login_required
+@email_verificado_required
 def coleta_inserir(experimento_id, dispositivo_id):
     if request.method == 'POST':
         nome = request.form['nome']
@@ -1007,6 +1218,7 @@ def coleta_inserir(experimento_id, dispositivo_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/<int:coleta_id>/editar', methods=['GET', 'POST'])
 @login_required
+@email_verificado_required
 def coleta_editar(experimento_id, dispositivo_id, coleta_id):
     if request.method == 'GET':
         cur = conn.cursor()
@@ -1055,6 +1267,7 @@ def coleta_editar(experimento_id, dispositivo_id, coleta_id):
 
 @app.route('/adicionar-coluna/<int:experimento_id>/<int:coleta_id>/<int:n_atributo>', methods=['POST'])
 @login_required
+@email_verificado_required
 def adicionar_atributo(experimento_id, coleta_id, n_atributo):
     try:
         cur = conn.cursor()
@@ -1073,6 +1286,7 @@ def adicionar_atributo(experimento_id, coleta_id, n_atributo):
     
 @app.route('/remove-coluna/<int:experimento_id>/<int:coleta_id>/<int:n_atributo>//<int:total_atributos>', methods=['POST'])
 @login_required
+@email_verificado_required
 def remover_atributo(experimento_id, coleta_id, n_atributo, total_atributos):
     try:
         cur = conn.cursor()
@@ -1099,6 +1313,7 @@ def remover_atributo(experimento_id, coleta_id, n_atributo, total_atributos):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/<int:coleta_id>/dados', methods=['GET'])
 @login_required
+@email_verificado_required
 def coleta_dados(experimento_id, dispositivo_id, coleta_id):
     cur = conn.cursor()
     cur.execute("SELECT * FROM api.coleta WHERE id = %s", (coleta_id,))
@@ -1144,6 +1359,7 @@ def coleta_dados(experimento_id, dispositivo_id, coleta_id):
 
 @app.route('/abrir-coleta/<int:experimento_id>/<int:dispositivo_id>/<int:coleta_id>', methods=['GET'])
 @login_required
+@email_verificado_required
 def abrir_coleta(experimento_id, dispositivo_id, coleta_id):
     cur = conn.cursor()
     
@@ -1157,6 +1373,7 @@ def abrir_coleta(experimento_id, dispositivo_id, coleta_id):
 
 @app.route('/fechar-coleta/<int:experimento_id>/<int:dispositivo_id>/<int:coleta_id>', methods=['GET'])
 @login_required
+@email_verificado_required
 def fechar_coleta(experimento_id, dispositivo_id, coleta_id):
     cur = conn.cursor()
     
@@ -1167,6 +1384,7 @@ def fechar_coleta(experimento_id, dispositivo_id, coleta_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/<int:coleta_id>/deletar')
 @login_required
+@email_verificado_required
 def coleta_deletar(experimento_id, dispositivo_id, coleta_id):
     cur = conn.cursor()
     
@@ -1183,6 +1401,7 @@ def coleta_deletar(experimento_id, dispositivo_id, coleta_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/dispositivo/<int:dispositivo_id>/coleta/<int:coleta_id>/limpar')
 @login_required
+@email_verificado_required
 def coleta_limpar(experimento_id, dispositivo_id, coleta_id):
     cur = conn.cursor()
     
@@ -1249,6 +1468,7 @@ def experimento_dispositivo_grafico(coleta_id, coluna_id, coluna):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas', methods=['GET'])
 @login_required
+@email_verificado_required
 def etapas_experimento(experimento_id):
     permissao_usuario = 'nenhuma'
     for permissao in current_user.permissoes:
@@ -1286,6 +1506,7 @@ def etapas_experimento(experimento_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/inserir', methods=['GET','POST'])
 @login_required
+@email_verificado_required
 def inserir_etapa(experimento_id):
     if request.method == 'POST':
         nome = request.form['nome']
@@ -1310,6 +1531,7 @@ def inserir_etapa(experimento_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/ordem', methods=['GET'])
 @login_required
+@email_verificado_required
 def ordem_etapa(experimento_id):
     cur = conn.cursor()
     cur.execute("SELECT * FROM api.etapa WHERE experimento_id = %s ORDER BY ordem;", (experimento_id,))
@@ -1318,6 +1540,7 @@ def ordem_etapa(experimento_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/atualizar_ordem', methods=['POST'])
 @login_required
+@email_verificado_required
 def atualizar_ordem(experimento_id):
     data = request.get_json()
     nova_ordem = data.get('novaOrdem')
@@ -1336,6 +1559,7 @@ def atualizar_ordem(experimento_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/<int:etapa_id>/anexos', methods=['GET', 'POST'])
 @login_required
+@email_verificado_required
 def etapa_anexos(experimento_id, etapa_id):
     if request.method == 'POST':
         if 'file' in request.files:
@@ -1369,6 +1593,7 @@ def etapa_anexos(experimento_id, etapa_id):
             
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/<int:etapa_id>/editar', methods=['GET', 'POST'])
 @login_required
+@email_verificado_required
 def editar_etapa(experimento_id, etapa_id):
     if request.method == 'POST':
         nome = request.form['nome']
@@ -1390,6 +1615,7 @@ def editar_etapa(experimento_id, etapa_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/<int:etapa_id>/deletar', methods=['GET'])
 @login_required
+@email_verificado_required
 def deletar_etapa(experimento_id, etapa_id):
     cur = conn.cursor()
     cur.execute("DELETE FROM api.etapa WHERE id = %s", (etapa_id,))
@@ -1407,6 +1633,7 @@ def allowed_file(filename):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/<int:etapa_id>/anexos/<int:anexo_id>/visualizar')
 @login_required
+@email_verificado_required
 def download_anexo(experimento_id, etapa_id, anexo_id):
     cur = conn.cursor()
     cur.execute("SELECT nome_do_arquivo FROM api.anexos_etapa WHERE id = %s", (anexo_id,))
@@ -1433,6 +1660,7 @@ def download_anexo(experimento_id, etapa_id, anexo_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/<int:etapa_id>/anexos/<int:anexo_id>/deletar')
 @login_required
+@email_verificado_required
 def deletar_anexos_etapa(experimento_id,etapa_id, anexo_id):
     cur = conn.cursor()
     cur.execute("SELECT nome_do_arquivo FROM api.anexos_etapa WHERE id = %s", (anexo_id,))
@@ -1459,6 +1687,7 @@ def deletar_anexos_etapa(experimento_id,etapa_id, anexo_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/<int:etapa_id>/url', methods=['GET','POST'])
 @login_required
+@email_verificado_required
 def etapa_url(experimento_id, etapa_id):
     if request.method == 'POST':
         url = request.form['url']
@@ -1487,12 +1716,152 @@ def etapa_url(experimento_id, etapa_id):
 
 @app.route('/detalhes-experimento/<int:experimento_id>/etapas/<int:etapa_id>/url/<int:url_id>/deletar')
 @login_required
+@email_verificado_required
 def deletar_url_etapa(experimento_id,etapa_id, url_id):
     cur = conn.cursor()
     cur.execute("DELETE FROM api.urls_etapa WHERE id = %s", (url_id,))
     conn.commit()
 
     return redirect(url_for('etapa_url', etapa_id=etapa_id, experimento_id=experimento_id, user=current_user))
+
+
+###################################################################################################################################################
+#######################################################  ADMIN  ###################################################################################
+
+@app.route('/admin/usuarios', methods=['GET'])
+@login_required  # Se você precisar de autenticação
+@email_verificado_required
+@admin_required
+def admin_usuarios():
+    try:
+        firebase_users = []
+        page = auth.list_users() 
+        while page:
+            for user in page.users: 
+                firebase_users.append({
+                    'uid': user.uid,
+                    'email': user.email if hasattr(user, 'email') else None,
+                    'email_verified': user.email_verified if hasattr(user, 'email_verified') else False
+                })
+            page = page.get_next_page() 
+        
+        cur = conn.cursor()
+        cur.execute("SELECT id, email, nome, vinculo, admin FROM local.usuario")
+        postgres_users = cur.fetchall()
+
+        user_data = []
+        for postgres_user in postgres_users:
+            for firebase_user in firebase_users:
+                if postgres_user[1] == firebase_user['email']: 
+                    user_data.append({
+                        'id': postgres_user[0],
+                        'email': postgres_user[1],
+                        'nome': postgres_user[2],
+                        'vinculo': postgres_user[3],
+                        'admin': postgres_user[4],
+                        'firebase_uid': firebase_user['uid'],
+                        'email_verified': firebase_user['email_verified']
+                    })
+
+        return render_template('admin_usuarios.html', user=current_user, users=user_data)
+
+    except Exception as e:
+        print(f"Erro ao listar usuários: {e}")
+        flash("Erro ao listar usuários. Tente novamente mais tarde.", "danger")
+        return "Erro ao carregar usuários", 500
+
+
+# Excluir Usuário
+@app.route('/admin/excluir/<uid>/<db_id>', methods=['GET'])
+@login_required
+@email_verificado_required
+@admin_required
+def excluir_usuario(uid, db_id):
+    try:
+        auth.delete_user(uid)
+
+        cur = conn.cursor()
+        cur.execute("DELETE FROM local.usuario WHERE id = %s", (db_id,))
+        conn.commit()
+        
+        flash("Usuário excluído com sucesso.", "success")
+        return redirect(url_for('admin_usuarios'))
+
+    except Exception as e:
+        print(f"Erro ao excluir usuário: {e}")
+        flash("Erro ao excluir usuário. Tente novamente.", "danger")
+        return redirect(url_for('admin_usuarios'))
+
+
+
+@app.route('/admin/tornar-admin/<db_id>', methods=['GET'])
+@login_required
+@email_verificado_required
+@admin_required
+def toggle_admin(db_id):
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT admin FROM local.usuario WHERE id = %s", (db_id,))
+        is_admin = cur.fetchone()[0] 
+
+        new_status = not is_admin
+        cur.execute("UPDATE local.usuario SET admin = %s WHERE id = %s", (new_status, db_id))
+        conn.commit()
+
+        if new_status:
+            flash("Usuário promovido a admin com sucesso.", "success")
+        else:
+            flash("Privilégios de admin removidos com sucesso.", "success")
+
+        return redirect(url_for('admin_usuarios'))
+
+    except Exception as e:
+        print(f"Erro ao alternar status de admin: {e}")
+        flash("Erro ao alterar o status de admin. Tente novamente.", "danger")
+        return redirect(url_for('admin_usuarios'))
+
+
+# Rota para exibir e gerenciar os domínios permitidos
+@app.route('/admin/dominios', methods=['GET', 'POST'])
+@login_required
+@email_verificado_required
+@admin_required
+def admin_dominios():
+    cur = conn.cursor()
+
+    if request.method == 'POST':
+        # Adiciona um novo domínio
+        novo_dominio = request.form['dominio']
+        try:
+            cur.execute("INSERT INTO local.dominios (dominio) VALUES (%s)", (novo_dominio,))
+            conn.commit()
+            print(f"Domínio {novo_dominio} adicionado com sucesso.")
+        except Exception as e:
+            print(f"Erro ao adicionar o domínio: {e}")
+
+    # Recupera a lista de domínios
+    cur.execute("SELECT * FROM local.dominios")
+    dominios = cur.fetchall()
+
+    return render_template('admin-dominios.html', user=current_user, dominios=dominios)
+
+# Rota para remover um domínio
+@app.route('/admin/dominios/remover/<int:id>', methods=['POST'])
+@login_required
+@email_verificado_required
+@admin_required
+def remover_dominio(id):
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM local.dominios WHERE id = %s", (id,))
+        conn.commit()
+        print("Domínio removido com sucesso.")
+    except Exception as e:
+        print(f"Erro ao remover o domínio: {e}")
+
+    return redirect(url_for('admin_dominios'))
+
+
 
 if __name__ == "__main__":
     #app.run(host='0.0.0.0', port=5003,threaded=True)

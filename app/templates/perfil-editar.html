@@ -1,7 +1,15 @@
 {% extends "layout.html" %}
 {% block body %}
     <div class="home-container">
-        <h1>Login</h1>
+        <h1>Editar Perfil</h1>
+
+        {% if message %}
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endif %}
+
         <form action="/editar-perfil" method="post">
             <div class="form-group">
                 <label for="username">Usuário:</label>
@@ -16,8 +24,14 @@
                 <input type="text" class="form-control" id="vinculo" name="vinculo" value="{{vinculo}}" required>
             </div>
             <div class="form-group">
-                <label for="password">Senha:</label>
-                <input type="password" class="form-control" id="password" name="password" value="{{senha}}" required>
+                <label for="senha_atual">Senha Atual:</label>
+                <input type="password" class="form-control" id="senha_atual" name="senha_atual">
+                <small class="form-text text-muted">Deixe em branco se não quiser alterar a senha.</small>
+            </div>
+            <div class="form-group">
+                <label for="nova_senha">Nova Senha:</label>
+                <input type="password" class="form-control" id="nova_senha" name="nova_senha">
+                <small class="form-text text-muted">Deixe em branco se não quiser alterar a senha.</small>
             </div>
             <button type="submit" class="btn btn-primary">Salvar</button>
         </form>
