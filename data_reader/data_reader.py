@@ -13,8 +13,8 @@ broker_address = '80fe29ce8268427c9a4a9aeb6cabf603.s2.eu.hivemq.cloud'
 broker_port = 8883
 
 
-uri = 'mongodb://farmscihub_user:fsh_2024@localhost:27017/farmscihub'
-#uri = 'mongodb://farmscihub_user:fsh_2024@10.0.2.15:27017/farmscihub'
+#uri = 'mongodb://farmscihub_user:fsh_2024@localhost:27017/farmscihub'
+uri = 'mongodb://farmscihub_user:fsh_2024@10.0.2.15:27017/farmscihub'
 #uri = 'mongodb://root:password@10.0.2.15:27017/'
 #uri = 'mongodb://root:password@localhost:27017/'
 mongo_client = MongoClient(uri)
@@ -22,8 +22,8 @@ database = mongo_client['farmscihub']
 
 
 # Configurações postgresql
-DB_HOST = "localhost"
-#DB_HOST = "10.0.2.15"
+#DB_HOST = "localhost"
+DB_HOST = "10.0.2.15"
 DB_NAME = "farmscihub"
 DB_USER = "farmscihub_admin"
 DB_PASS = "pibiti.fsh.2010"

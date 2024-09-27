@@ -20,7 +20,7 @@ docker rmi $IMAGE_NAME
 docker build -t $IMAGE_NAME .
 
 # Criando um novo container com a imagem atualizada
-docker run -d -p 5002:5002 --name $CONTAINER_NAME $IMAGE_NAME
+docker run -p 5002:5002 --name $CONTAINER_NAME $IMAGE_NAME
 
 # Iniciando o serviço
 #sudo systemctl start crud_dispositivo.service

@@ -47,8 +47,8 @@ authP = firebase.auth()
 
 
 # Configurações postgresql
-DB_HOST = "localhost"
-#DB_HOST = "10.0.2.15"
+#DB_HOST = "localhost"
+DB_HOST = "10.0.2.15"
 DB_NAME = "farmscihub"
 DB_USER = "farmscihub_admin"
 DB_PASS = "pibiti.fsh.2010"
@@ -1966,6 +1966,6 @@ def remover_dominio(id):
 
 
 if __name__ == "__main__":
-    #app.run(host='0.0.0.0', port=5003,threaded=True)
-    app.run(debug=True, threaded=True, port=5003)
+    app.run(host='0.0.0.0', port=5002,threaded=True)
+    #app.run(debug=True, threaded=True, port=5003)
 
