@@ -47,8 +47,8 @@ authP = firebase.auth()
 
 
 # Configurações postgresql
-#DB_HOST = "localhost"
-DB_HOST = "10.0.2.15"
+DB_HOST = "localhost"
+#DB_HOST = "10.0.2.15"
 DB_NAME = "farmscihub"
 DB_USER = "farmscihub_admin"
 DB_PASS = "pibiti.fsh.2010"
@@ -1830,23 +1830,45 @@ def deletar_url_etapa(experimento_id,etapa_id, url_id):
 ###################################################################################################################################################
 #######################################################  ADMIN  ###################################################################################
 
-@app.route('/admin/usuarios', methods=['GET'])
-@login_required  # Se você precisar de autenticação
+@app.route('/admin/usuarios', methods=['GET', 'POST'])
+@login_required 
 @email_verificado_required
 @admin_required
 def admin_usuarios():
     try:
+        if request.method == 'POST':
+            email = request.form.get('email')
+            senha = request.form.get('senha')
+
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM local.usuario WHERE email = %s", (email,))
+            existing_user = cur.fetchone()
+
+            if existing_user:
+                flash('Este email já está registrado.', 'danger')
+                return redirect(url_for('admin_usuarios'))
+            user = auth.create_user(
+                email=email,
+                password=senha
+            )
+
+            cur.execute("INSERT INTO local.usuario (nome, email, senha, vinculo) VALUES (%s, %s, %s, %s)",
+                        ('Novo Usuário', email, senha, 'Desconhecido'))
+            conn.commit()
+
+            flash('Usuário criado com sucesso!', 'success')
+            return redirect(url_for('admin_usuarios'))
         firebase_users = []
-        page = auth.list_users() 
+        page = auth.list_users()
         while page:
-            for user in page.users: 
+            for user in page.users:
                 firebase_users.append({
                     'uid': user.uid,
                     'email': user.email if hasattr(user, 'email') else None,
                     'email_verified': user.email_verified if hasattr(user, 'email_verified') else False
                 })
-            page = page.get_next_page() 
-        
+            page = page.get_next_page()
+
         cur = conn.cursor()
         cur.execute("SELECT id, email, nome, vinculo, admin FROM local.usuario")
         postgres_users = cur.fetchall()
@@ -1854,7 +1876,7 @@ def admin_usuarios():
         user_data = []
         for postgres_user in postgres_users:
             for firebase_user in firebase_users:
-                if postgres_user[1] == firebase_user['email']: 
+                if postgres_user[1] == firebase_user['email']:
                     user_data.append({
                         'id': postgres_user[0],
                         'email': postgres_user[1],
@@ -1871,6 +1893,7 @@ def admin_usuarios():
         print(f"Erro ao listar usuários: {e}")
         flash("Erro ao listar usuários. Tente novamente mais tarde.", "danger")
         return "Erro ao carregar usuários", 500
+
 
 
 # Excluir Usuário
@@ -1932,7 +1955,6 @@ def admin_dominios():
     cur = conn.cursor()
 
     if request.method == 'POST':
-        # Adiciona um novo domínio
         novo_dominio = request.form['dominio']
         try:
             cur.execute("INSERT INTO local.dominios (dominio) VALUES (%s)", (novo_dominio,))
@@ -1941,7 +1963,7 @@ def admin_dominios():
         except Exception as e:
             print(f"Erro ao adicionar o domínio: {e}")
 
-    # Recupera a lista de domínios
+    
     cur.execute("SELECT * FROM local.dominios")
     dominios = cur.fetchall()
 
@@ -1966,6 +1988,6 @@ def remover_dominio(id):
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5002,threaded=True)
-    #app.run(debug=True, threaded=True, port=5003)
+    #app.run(host='0.0.0.0', port=5002,threaded=True)
+    app.run(debug=True, threaded=True, port=5003)
 
