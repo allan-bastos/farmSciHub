@@ -7,9 +7,9 @@ from bson import ObjectId
 
 # Configurações paho
 client = paho.Client(paho.CallbackAPIVersion.VERSION2)
-client_username = 'redes1'
-client_password = 'projetoredes1'
-broker_address = '80fe29ce8268427c9a4a9aeb6cabf603.s2.eu.hivemq.cloud'
+client_username = 'fsh-client'
+client_password = 'Client-2024'
+broker_address = '38760e9fb33b4ec5a92b6d31003ff80b.s1.eu.hivemq.cloud'
 broker_port = 8883
 
 

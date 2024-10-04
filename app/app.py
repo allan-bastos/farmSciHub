@@ -1011,21 +1011,18 @@ def download_config(dispositivo_id):
 #include <PubSubClient.h>
 #include <WiFiClientSecure.h>
 
-#define LED_1 4
-#define LED_2 5
-
-//---- WiFi settings
+//---- COnfigurações WiFi
 const char* ssid = "";  // nome de sua rede
 const char* password = ""; // senha de sua rede
-//---- MQTT Broker settings
-const char* mqtt_server = "80fe29ce8268427c9a4a9aeb6cabf603.s2.eu.hivemq.cloud"; // URL do broker
-const char* mqtt_username = ""; // nome de usuário
-const char* mqtt_password = ""; // senha
+
+//---- COnfigurações Broker MQTT
+const char* mqtt_server = "38760e9fb33b4ec5a92b6d31003ff80b.s1.eu.hivemq.cloud"; // URL do broker
+const char* mqtt_username = "fsh-client"; // nome de usuário
+const char* mqtt_password = "Client-2024"; // senha
 const int mqtt_port = 8883; // porta do broker
 
 WiFiClientSecure espClient;
 PubSubClient client(espClient);
-unsigned long lastMsg = 0;
 
 const char* data_topic = "valores";
 const int dispositivo_id = {dispositivo_id}; // ID do dispositivo
