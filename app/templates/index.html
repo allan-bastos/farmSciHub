@@ -1,25 +1,39 @@
 {% extends "layout.html" %}
-{% block head %}
-<link rel="stylesheet" href="/static/styles.css">
-{% endblock %}
-
 {% block body %}
-    <div class="home-container">
-        <h1>Experimentos na Plataforma</h1>
-
-        {% if experimentos %}
-        {% for experimento in experimentos %}
-        <div class="experiment-card" onclick="window.location.href='{{ url_for('experimento', experimento_id=experimento.id) }}';">
-            <h3><b>{{ experimento[1] }}</b></h3>
-            <h5><b>Categoria:</b> {{ experimento[2] }}</h5>
-            <p><b>Descrição:</b> {{ experimento[4] }}</p>
-        </div>
-        {% endfor %}
-        {% else %}
-        <div class="text-center">
-            <br>
-            <p>Nenhum experimento cadastrado ainda.</p>
-        </div>
-        {% endif %}
+<div class="home-container">
+  <div class="jumbotron p-5 mb-4 bg-light rounded-3 shadow-sm">
+    <div class="container py-5">
+      <h1 class="display-4">Bem-vindo ao FarmSciHub!</h1>
+      <p class="lead">Uma plataforma para monitoramento e análise de experimentos em ambientes controlados.</p>
+      <hr class="my-4">
+      <p>Para pesquisadores, professores, alunos e entusiastas da agricultura de precisão.</p>
+      <a class="btn btn-primary btn-lg" href="/todos-experimentos" role="button">Todos os Experimentos</a>
+      <a class="btn btn-success btn-lg" href="/meus-experimentos" role="button">Meus Experimentos</a>
     </div>
+  </div>
+
+  <div class="row text-center mt-4">
+    <div class="col-md-4 d-flex">
+        <div class="card shadow-sm p-3 mb-4 bg-white rounded h-100 w-100">
+          <i class="fas fa-book fa-2x mb-2 text-primary"></i>
+          <h5><b>Como usar</b></h5>
+          <p><a href="/documentacao" class="btn btn-sm btn-outline-primary mt-2">Ver documentação</a></p>
+        </div>
+      </div>
+      <div class="col-md-4 d-flex">
+        <div class="card shadow-sm p-3 mb-4 bg-white rounded h-100 w-100">
+          <i class="fas fa-users fa-2x mb-2 text-success"></i>
+          <h5><b>Quem já usou?</b></h5>
+          <p>Pesquisadores do IFSP, ESALQ e instituições parceiras.</p>
+        </div>
+      </div>
+      <div class="col-md-4 d-flex">
+        <div class="card shadow-sm p-3 mb-4 bg-white rounded h-100 w-100">
+          <i class="fas fa-bullseye fa-2x mb-2 text-warning"></i>
+          <h5><b>Para quem serve?</b></h5>
+          <p>Projetos de pesquisa, ensino e extensão com foco em dados e monitoramento remoto.</p>
+        </div>
+      </div>
+  </div>
+</div>
 {% endblock %}

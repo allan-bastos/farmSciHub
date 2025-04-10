@@ -158,6 +158,17 @@ def index():
     print(list_exps)
     return render_template('index.html', experimentos=list_exps, user=current_user)
 
+@app.route('/todos-experimentos')
+def todos_experiementos():    
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    s = "SELECT * FROM api.experimento;"
+    cur.execute(s)
+    list_exps = cur.fetchall()
+    for exp in list_exps:
+        exp['criado_em'] = exp['criado_em'].strftime('%Y-%m-%d %H:%M:%S')
+    print(list_exps)
+    return render_template('todos-experimentos.html', experimentos=list_exps, user=current_user)
+
 @app.route('/sobre')
 def sobre():
     return render_template('sobre.html', user=current_user)
@@ -319,6 +330,10 @@ def verificar_email():
         return render_template('verificar_email.html', message=message, user=current_user)
     
 
+
+@app.route('/termos-de-uso.html')
+def termos_de_uso():
+    return render_template('termos-de-uso.html')
 
 @app.route('/editar-perfil', methods=['GET', 'POST'])
 @login_required
@@ -1985,6 +2000,6 @@ def remover_dominio(id):
 
 
 if __name__ == "__main__":
-    #app.run(host='0.0.0.0', port=5002,threaded=True)
-    app.run(debug=True, threaded=True, port=5003)
+    app.run(host='0.0.0.0', port=5003,threaded=True)
+    #app.run(debug=True, threaded=True, port=5003)
 

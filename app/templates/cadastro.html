@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% block body %}
 <div class="home-container">
-    <h1>Login</h1>
+    <h1>Cadastro</h1>
     <form action="/registro" method="post">
 
         <div class="form-group">
@@ -24,6 +24,17 @@
             <label for="vinculo">Vínculo institucional:</label>
             <input type="text" class="form-control" id="vinculo" name="vinculo" required>
         </div>
+
+        <div class="form-group">
+            <label for="termos">Termos de Uso e Compromisso:</label>
+            <iframe src="termos-de-uso.html" class="w-100" style="height: 300px; border: 2px solid #ccc;"></iframe>
+        </div>
+
+        <div class="form-group form-check">
+            <input type="checkbox" class="form-check-input" id="aceite_termos" name="aceite_termos" required>
+            <label class="form-check-label" for="aceite_termos">Eu li e aceito os Termos de Uso e Compromisso</label>
+        </div>
+
         <div class="form-group">
             <button type="submit" class="btn btn-primary">Cadastrar-se</button>
         </div>

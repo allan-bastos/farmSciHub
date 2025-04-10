@@ -1,20 +1,38 @@
 {% extends "layout.html" %}
-{% block head %}
-<link rel="stylesheet" href="/static/styles.css">
-{% endblock %}
-
 {% block body %}
+
+<!-- Botão flutuante -->
+<button class="floating-btn" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+</button>
+
+<!-- Sidebar flutuante -->
+<div id="floating-sidebar" class="floating-sidebar">
+        <button class="close-sidebar-btn" onclick="toggleSidebar()">&times;</button>
+        <h5>Opções</h5>
+        <hr>
+        {% if not permissao[1] == 'leitura' or user.id == experimento[6]%}
+        <a href="/detalhes-experimento/{{experimento[0]}}/editar"><i class="fa fa-edit"></i> Editar</a>
+        {% endif %}
+        <a href="/detalhes-experimento/{{experimento[0]}}/anexos"><i class="fa fa-folder"></i> Anexos</a>
+        <a href="/detalhes-experimento/{{experimento[0]}}/url"><i class="fa fa-link"></i> URLs</a>
+        {% if not permissao[5] == 'nenhuma'%}
+        <a href="/detalhes-experimento/{{experimento[0]}}/dispositivo"><i class="fa fa-microchip"></i> Dispositivos</a>
+        {% endif %}
+        {% if not permissao[3] == 'nenhuma'%}
+        <a href="/detalhes-experimento/{{experimento[0]}}/etapas"><i class="fa fa-list"></i> Etapas</a>
+        {% endif %}
+        {% if user.id == experimento[6]%}
+        <a href="/compartilhados_experimento/{{experimento[0]}}"><i class="fa fa-share"></i> Compartilhar</a>
+        <a href="#" onclick="confirmarExclusao('/detalhes-experimento/{{experimento[0]}}/deletar')"><i
+                        class="fa fa-trash text-danger"></i> Excluir</a>
+        {% endif %}
+</div>
 
 <div class="home-container">
         <a href="/meus-experimentos" class="btn-voltar"><i class="fa fa-fw fa-arrow-left"></i>Voltar</a>
 
-
-
-
         {% if permissao != 'nenhuma' or user.id == experimento[6]%}
-
-
-
         <h1>Detalhes do Experimento</h1>
 
         <div class="experiment-details">
@@ -24,47 +42,46 @@
                 <p><b>Localização:</b> {{ experimento[5] }}</p>
                 <p><b>Cadastrado em:</b> {{ experimento[3].strftime("%d/%m/%Y") }}</p>
                 <p><b>Espaço ocupado por anexos:</b> {{ espaco_disco }}</p>
-                <p><b>Espaço ocupado no postgres:</b> {{ espaco_banco }}</p>
-
+                <p><b>Espaço ocupado no banco de dados:</b> {{ espaco_banco }}</p>
         </div>
-        <div class="experiment-buttons">
 
+        <div class="experiment-buttons">
                 {% if not permissao[1] == 'leitura' or user.id == experimento[6]%}
                 <a href="/detalhes-experimento/{{experimento[0]}}/editar" class="btn btn-primary">Editar <i
                                 class="fa fa-fw fa-edit"></i></a>
                 {% endif %}
-
-
-                <a href="/detalhes-experimento/{{experimento[0]}}/anexos" class="btn btn-warning">Anexos ({{counts.anexos}}) <i
-                                class="fa fa-fw fa-folder"></i></a>
-
-                <a href="/detalhes-experimento/{{experimento[0]}}/url" class="btn btn-secondary">URLs ({{counts.urls}}) <i
-                                class="fa fa-fw fa-link"></i></a>
-                <!-- Iterar entre as permissoes -->
+                <a href="/detalhes-experimento/{{experimento[0]}}/anexos" class="btn btn-warning">Anexos
+                        ({{counts.anexos}}) <i class="fa fa-fw fa-folder"></i></a>
+                <a href="/detalhes-experimento/{{experimento[0]}}/url" class="btn btn-secondary">URLs ({{counts.urls}})
+                        <i class="fa fa-fw fa-link"></i></a>
                 {% if not permissao[5] == 'nenhuma'%}
-                <a href="/detalhes-experimento/{{experimento[0]}}/dispositivo" class="btn btn-info">Dispositivos ({{counts.dispositivos}}) <i
-                                class="fa fa-fw fa-microchip"></i></a>
+                <a href="/detalhes-experimento/{{experimento[0]}}/dispositivo" class="btn btn-info">Dispositivos
+                        ({{counts.dispositivos}}) <i class="fa fa-fw fa-microchip"></i></a>
                 {% endif %}
                 {% if not permissao[3] == 'nenhuma'%}
-                <a href="/detalhes-experimento/{{experimento[0]}}/etapas" class="btn btn-success">Etapas ({{counts.etapas}}) <i
-                                class="fa fa-fw fa-list"></i></a>
+                <a href="/detalhes-experimento/{{experimento[0]}}/etapas" class="btn btn-success">Etapas
+                        ({{counts.etapas}}) <i class="fa fa-fw fa-list"></i></a>
                 {% endif %}
                 {% if user.id == experimento[6]%}
                 <a href="#" onclick="confirmarExclusao('/detalhes-experimento/{{experimento[0]}}/deletar')"
                         class="btn btn-danger">Excluir <i class="fa fa-fw fa-trash"></i></a>
-
-                <a href="/compartilhados_experimento/{{experimento[0]}}" class="btn btn-dark">Compartilhar ({{counts.compartilhamentos}}) <i
-                                class="fa fa-fw fa-share"></i></a>
+                <a href="/compartilhados_experimento/{{experimento[0]}}" class="btn btn-dark">Compartilhar
+                        ({{counts.compartilhamentos}}) <i class="fa fa-fw fa-share"></i></a>
                 {% endif %}
         </div>
         {% else %}
         <br>
         <div class="text-center">
                 <h3>Você não tem acesso a esse experimento</h3>
-                
-        </div> 
-        {%      endif %}
+        </div>
+        {% endif %}
 </div>
 
+<script>
+        function toggleSidebar() {
+                const sidebar = document.getElementById('floating-sidebar');
+                sidebar.classList.toggle('active');
+        }
+</script>
 
 {% endblock %}
